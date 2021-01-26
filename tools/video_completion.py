@@ -59,7 +59,7 @@ def gradient_mask(mask):
 
     return gradient_mask
 
-def calculate_flow(args, model, video, mode):
+def calculate_flow(outroot, model, video, mode):
     """Calculates optical flow.
     """
     if mode not in ['forward', 'backward']:
@@ -69,8 +69,8 @@ def calculate_flow(args, model, video, mode):
     Flow = np.empty(((imgH, imgW, 2, 0)), dtype=np.float32)
     #Flow = np.empty(((nFrame, 2, imgH, imgW)), dtype=np.float32)
 
-    create_dir(os.path.join(args.outroot, 'flow', mode + '_flo'))
-    create_dir(os.path.join(args.outroot, 'flow', mode + '_png'))
+    create_dir(os.path.join(outroot, 'flow', mode + '_flo'))
+    create_dir(os.path.join(outroot, 'flow', mode + '_png'))
 
     with torch.no_grad():
         for i in range(video.shape[0] - 1):
@@ -95,10 +95,23 @@ def calculate_flow(args, model, video, mode):
             flow_img = Image.fromarray(flow_img)
 
             # Saves the flow and flow_img.
-            flow_img.save(os.path.join(args.outroot, 'flow', mode + '_png', '%05d.png'%i))
-            frame_utils.writeFlow(os.path.join(args.outroot, 'flow', mode + '_flo', '%05d.flo' % i), flow)
+            flow_img.save(os.path.join(outroot, 'flow', mode + '_png', '%05d.png'%i))
+            frame_utils.writeFlow(os.path.join(outroot, 'flow', mode + '_flo', '%05d.flo' % i), flow)
 
     return Flow
+
+def load_video_frames(video_path):
+    # Loads frames.
+    frame_filename_list = glob.glob(os.path.join(video_path, '*.png')) + \
+                          glob.glob(os.path.join(video_path, '*.jpg'))
+
+    video = []
+    for filename in sorted(frame_filename_list):
+        video.append(torch.from_numpy(np.array(Image.open(filename)).astype(np.uint8)).permute(2, 0, 1).float())
+
+    video = torch.stack(video, dim=0)
+
+    return video
 
 def object_removal_seamless(args):
 
@@ -106,19 +119,7 @@ def object_removal_seamless(args):
     RAFT_model = initialize_RAFT(args)
 
     # Loads frames.
-    frame_filename_list = glob.glob(os.path.join(args.path, '*.png')) + \
-                    glob.glob(os.path.join(args.path, '*.jpg'))
-
-    # Obtains imgH, imgW and nFrame.
-    imgH, imgW = np.array(Image.open(frame_filename_list[0])).shape[:2]
-    nFrame = len(frame_filename_list)
-
-    # Loads video. <-- TODO: Create a function
-    video = []
-    for filename in sorted(frame_filename_list):
-        video.append(torch.from_numpy(np.array(Image.open(filename)).astype(np.uint8)).permute(2, 0, 1).float())
-
-    video = torch.stack(video, dim=0)
+    video = load_video_frames(args.video_path)
     video = video.to('cuda')
 
     # Calcutes the flow. Notice that this flow is computed  on the non-masked video
@@ -251,9 +252,7 @@ def complete_flow(args, forward_flow, backward_flow, masks):
         update_net.load_state_dict(update_ckpt_dict['update'], strict=True)
 
         # Compute features
-        F=0
-        with torch.no_grad():
-            F = flow2F(flows.view(B * N, 2 * C, H, W)).view(B, N, 32, H, W)
+        F = flow2F(flows.view(B * N, 2 * C, H, W)).view(B, N, 32, H, W)
 
 
         # Iterative Steps: todo: Should go to a function
@@ -379,7 +378,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--mode', default='object_removal', help="modes: object_removal / video_extrapolation")
     parser.add_argument('--seamless', action='store_true', help='Whether operate in the gradient domain')
-    parser.add_argument('--path', default='../data/tennis', help="dataset for evaluation")
+    parser.add_argument('--video_path', default='../data/tennis', help="dataset for evaluation")
     parser.add_argument('--path_mask', default='../data/tennis_mask', help="mask for object removal")
     parser.add_argument('--outroot', default='../result/', help="output directory")
 
