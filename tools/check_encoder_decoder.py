@@ -24,10 +24,10 @@ def main(args):
     RAFT_model = initialize_RAFT(args)
 
     # Calcutes the flow. Notice that this flow is computed  on the non-masked video
-    forward_flow = calculate_flow('./check/GT_RAFT/', RAFT_model, video, 'forward')
+    forward_flow = calculate_flow(RAFT_model, video, 'forward')
     # add the lid to the final
     # forward_flow = np.concatenate((forward_flow, np.zeros((imgH, imgW, 2,1))), axis=3)
-    backward_flow = calculate_flow('./check/GT_RAFT/', RAFT_model, video, 'backward')
+    backward_flow = calculate_flow(RAFT_model, video, 'backward')
     # add the lid to the beginning
     # backward_flow = np.concatenate((np.zeros((imgH, imgW, 2,1)), backward_flow), axis=3)
 
