@@ -7,9 +7,8 @@ from os.path import join
 
 from tqdm import tqdm
 
-from video_completion import calculate_flow, load_video_frames, initialize_RAFT
+from video_completion import calculate_flow, load_video_frames, initialize_RAFT, initialize_encoder, initialize_decoder
 
-from models.iterative import Flow2features, Features2flow
 from utils import flow_viz, frame_utils
 from PIL import Image
 import numpy as np
@@ -32,8 +31,9 @@ def main(args):
     # backward_flow = np.concatenate((np.zeros((imgH, imgW, 2,1)), backward_flow), axis=3)
 
     # re-order into the Pierrick's ordering
-    forward_flow = np.expand_dims(forward_flow, axis=0)
-    backward_flow = np.expand_dims(backward_flow,  axis=0)
+    forward_flow = np.expand_dims(np.stack(forward_flow, axis=3), axis=0)
+    backward_flow = np.expand_dims(np.stack(backward_flow, axis=3), axis=0)
+
     forward_flow = torch.from_numpy(forward_flow).permute(0, 4, 3, 1, 2).contiguous().float()
     backward_flow = torch.from_numpy(backward_flow).permute(0, 4, 3, 1, 2).contiguous().float()
 
@@ -45,32 +45,26 @@ def main(args):
 
     B, N, C, H, W = forward_flow.shape
 
-    model_dir = args.model_dir
-    flow2Features_model_name = args.flow2features_model_name
-    features2Flow_model_name = args.features2flow_model_name
 
     with torch.no_grad():
         ###
         ### Build the complete model and Load the weights
-        # encoder Flow to Features
-        flow2F = Flow2features().cpu().eval()
 
-        # load weights
-        flow2F_ckpt_dict = torch.load(join(model_dir, flow2Features_model_name + '.pth'))
-        flow2F.load_state_dict(flow2F_ckpt_dict['flow2F'], strict=True)
+        # encoder Flow to Features
+        flow2F = initialize_encoder(args.flow2features_weights)
 
         # decoder Features to Flow
-        F2flow = Features2flow().cpu().eval()
-
-        # load weights
-        F2flow_ckpt_dict = torch.load(join(model_dir, features2Flow_model_name + '.pth'))
-        F2flow.load_state_dict(F2flow_ckpt_dict['F2flow'], strict=True)
+        F2flow = initialize_decoder(args.features2flow_weights)
 
         # Compute features
         F = flow2F(flows.view(B * N, 2 * C, H, W)).view(B, N, 32, H, W)
 
-        #perturbation = np.ones(F.shape).astype(np.float32)
-        perturbation = np.random.random(F.shape).astype(np.float32)
+
+        if args.features_perturbation:
+            perturbation = np.random.random(F.shape).astype(np.float32)       # Random perturbation
+        else:
+            perturbation = np.ones(F.shape).astype(np.float32)  # No perturbation
+
         F = F*torch.from_numpy(perturbation)
 
         #Test decode
@@ -97,7 +91,7 @@ def main(args):
             GT_bwd_flow_img = Image.fromarray(GT_bwd_flow_img)
 
             # Saves the flow and flow_img.
-            dir = join('./check/', 'forward_flow')
+            dir = join(args.saving_path, 'forward_flow')
             if not os.path.exists(dir):
                 os.makedirs(dir)
 
@@ -108,7 +102,7 @@ def main(args):
             NO_fwd_flow_img.save(NO_png_name)
 
 
-            dir = os.path.join('./check/', 'backward_flow')
+            dir = os.path.join(args.saving_path, 'backward_flow')
             if not os.path.exists(dir):
                 os.makedirs(dir)
             GT_png_name = dir + '/GT_%05d.png' % n_frame
@@ -120,13 +114,17 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--model_dir', default=None, help='Checkpoint used to complete de Optical Flow')
-    parser.add_argument('--flow2features_model_name', default=None,
-                        help='Class name of the encoder (flow to features) network architecture')
-    parser.add_argument('--features2flow_model_name', default=None,
-                        help='Class name of the decoder (features to flow) network architecture')
+    parser.add_argument('--saving_path',
+                        help='Root folder where the results will be saved')
+
+    parser.add_argument('--flow2features_weights', default=None,
+                        help='Path to the weights of the  encoder (flow to features) network architecture')
+    parser.add_argument('--features2flow_weights', default=None,
+                        help='Path to the weights of the  decoder (features to flow) network architecture')
 
     parser.add_argument('--video_path', default='../data/tennis', help="dataset for evaluation")
+
+    parser.add_argument('--features_perturbation', action='store_true', help='add random noise to features')
 
     # RAFT
     parser.add_argument('--opticalFlow_model', default='../weight/raft-things.pth',
@@ -135,5 +133,8 @@ if __name__ == '__main__':
     parser.add_argument('--mixed_precision', action='store_true', help='use mixed precision')
     parser.add_argument('--alternate_corr', action='store_true', help='use efficent correlation implementation')
 
+
+
     args = parser.parse_args()
+
     main(args)

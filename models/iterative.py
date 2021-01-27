@@ -40,7 +40,7 @@ class Flow2features(nn.Module):
 class Res_Update2(nn.Module):
     def __init__(self, in_channels=32 * 3, update='pow'):
         super(Res_Update2, self).__init__()
-        #self.initial_mask = Initial_mask()
+        self.initial_mask = Initial_mask()
         self.pconv1 = PartialConv2d(multi_channel='semi', return_mask=True, kernel_size=(3, 3), padding=1,
                                     in_channels=in_channels, out_channels=64, update=update)
         self.bn1 = nn.BatchNorm2d(in_channels)
@@ -64,7 +64,7 @@ class Res_Update2(nn.Module):
 class Res_Update3(nn.Module):
     def __init__(self, in_channels=32 * 3, update='pow'):
         super(Res_Update3, self).__init__()
-        #self.initial_mask = Initial_mask()
+        self.initial_mask = Initial_mask()
         self.pconv1 = PartialConv2d(multi_channel='semi', return_mask=True, kernel_size=(3, 3), padding=1,
                                     in_channels=in_channels, out_channels=64, update=update)
         self.bn1 = nn.BatchNorm2d(in_channels)
@@ -83,6 +83,27 @@ class Res_Update3(nn.Module):
 
         return (x[:, 32:64] * mask[:, 32:33] + out2 * (1 - mask[:, 32:33])), new_mask
 
+
+class Res_Update4(nn.Module):
+    def __init__(self, in_channels=32 * 3, update='pow'):
+        super(Res_Update4, self).__init__()
+        self.pconv1 = PartialConv2d(multi_channel='semi', return_mask=True, kernel_size=(3, 3), padding=1,
+                                    in_channels=in_channels, out_channels=64, update=update)
+        self.bn1 = nn.BatchNorm2d(in_channels)
+        self.bn2 = nn.BatchNorm2d(64)
+        self.pconv2 = PartialConv2d(multi_channel=False, return_mask=True, kernel_size=(3, 3), padding=1,
+                                    in_channels=64, out_channels=32, update=update)
+        # self.bn3=nn.BatchNorm2d(64)
+        # self.pconv3=PartialConv2d(multi_channel=False,return_mask=True,kernel_size=(3,3),padding=1,in_channels=64,out_channels=32)
+
+    def forward(self, x, mask=None):
+        out1, new_mask = self.pconv1(F.leaky_relu(self.bn1(x)), mask)
+
+        out2, new_mask = self.pconv2(F.leaky_relu(self.bn2(out1)), new_mask)
+
+        # out3,_=self.pconv3(F.leaky_relu(self.bn3(out2+out1)),new_mask)
+
+        return (x[:, 32:64] * mask[:, 32:33] + out2 * (1 - mask[:, 32:33]) * new_mask), new_mask
 
 class Initial_mask(nn.Module):
     def __init__(self):

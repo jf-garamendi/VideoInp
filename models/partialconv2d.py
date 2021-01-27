@@ -30,7 +30,7 @@ class PartialConv2d(nn.Conv2d):
 
         super(PartialConv2d, self).__init__(*args, **kwargs)
         self.update=update
-        print(self.update)
+        #print(self.update)
 
         
         self.a=torch.nn.Parameter(torch.tensor(.33/10),requires_grad=True)

@@ -28,7 +28,7 @@ from RAFT import RAFT
 #from frame_inpaint import DeepFillv1
 #from edgeconnect.networks import EdgeGenerator_
 
-from models.iterative import Flow2features, Features2flow, Res_Update3, Res_Update2
+from models.iterative import Flow2features, Features2flow, Res_Update3, Res_Update2, Res_Update4
 from utils import flow_viz, frame_utils
 import utils.region_fill as rf
 
@@ -57,7 +57,7 @@ def initialize_encoder(weight_path):
 
     # load weights
     flow2F_ckpt_dict = torch.load(weight_path)
-    model.load_state_dict(flow2F_ckpt_dict['flow2F'], strict=True)
+    model.load_state_dict(flow2F_ckpt_dict['flow2F'], strict=False)
 
     return model
 
@@ -67,7 +67,7 @@ def initialize_decoder(weight_path):
 
     # load weights
     F2flow_ckpt_dict = torch.load(weight_path)
-    model.load_state_dict(F2flow_ckpt_dict['F2flow'], strict=True)
+    model.load_state_dict(F2flow_ckpt_dict['F2flow'], strict=False)
 
     return model
 def initialize_update(number, kind_update, weight_path):
@@ -82,7 +82,7 @@ def initialize_update(number, kind_update, weight_path):
     model = model.cpu().eval()
 
     update_ckpt_dict = torch.load(weight_path)
-    model.load_state_dict(update_ckpt_dict['update'], strict=True)
+    model.load_state_dict(update_ckpt_dict['update'], strict=False)
 
     return model
 
@@ -109,7 +109,7 @@ def calculate_flow(model, video, mode):
 
     with torch.no_grad():
         for i in range(video.shape[0] - 1):
-            print("Calculating {0} flow {1:2d} <---> {2:2d}".format(mode, i, i + 1), '\r', end='')
+            print("\n Calculating {0} flow {1:2d} <---> {2:2d}".format(mode, i, i + 1), '\r', end='')
             if mode == 'forward':
                 # Flow i -> i + 1
                 image1 = video[i, None]
@@ -174,12 +174,12 @@ def save_flow(flow, folder):
 
 def object_removal_seamless(args):
 
-    # Flow model.
-    RAFT_model = initialize_RAFT(args)
-
     # Loads frames.
     video = load_video_frames(args.video_path)
     video = video.to('cuda')
+
+    # Flow model.
+    RAFT_model = initialize_RAFT(args)
 
     # Calcutes the flow. Notice that this flow is computed  on the non-masked video
     forward_flow = calculate_flow(RAFT_model, video, 'forward')
@@ -193,7 +193,7 @@ def object_removal_seamless(args):
     # END calculate the flow
 
     if args.verbose:
-        print ('Saving computed flow (without masking) into  ' + args.verbose_path)
+        print('\n Saving computed flow (without masking) into  ' + args.verbose_path)
         save_flow(forward_flow, join(args.verbose_path, 'GT_forward_flow'))
         save_flow(backward_flow, join(args.verbose_path, 'GT_backward_flow'))
 
@@ -236,11 +236,11 @@ def object_removal_seamless(args):
 
     if args.verbose:
         folder = join(args.verbose_path, 'masked_forward_flow')
-        print ('Saving initial masked forward flow into ' + folder)
+        print('\n Saving initial masked forward flow into ' + folder)
         save_flow(forward_masked_flow, folder)
 
         folder = join(args.verbose_path, 'masked_backward_flow')
-        print('Saving initial masked backward flow into ' + folder)
+        print('\n Saving initial masked backward flow into ' + folder)
         save_flow(backward_masked_flow, folder)
 
     # END Load the masks
@@ -259,18 +259,18 @@ def smooth_flow_fill(flow, masks):
 def complete_flow(args, forward_flow, backward_flow, masks):
 
     #Initialize the flow inside the mask with a smooth interpolation
-    print("Initializing flow inside the inpainting hole")
+    print("\n Initializing flow inside the inpainting hole")
     forward_flow  = smooth_flow_fill(forward_flow, masks)
     backward_flow = smooth_flow_fill(backward_flow, masks)
 
 
     if args.verbose:
         folder = join(args.verbose_path, 'initial_forward_flow')
-        print ('Saving initialized forward flow into ' + folder)
+        print ('\n Saving initialized forward flow into ' + folder)
         save_flow(forward_flow, folder)
 
         folder = join(args.verbose_path, 'initial_backward_flow')
-        print('Saving initial initial backward flow into ' + folder)
+        print('\n Saving initial initial backward flow into ' + folder)
         save_flow(backward_flow, folder)
 
     masks = np.expand_dims(np.stack(masks, axis=3), axis=0)
@@ -377,7 +377,6 @@ def complete_flow(args, forward_flow, backward_flow, masks):
                     inpainted_flow = F2flow(F[:, n_frame]).cpu().numpy()
 
 
-                # Ver que hacer con esto --V--
                 tmp_mask = confidence_new[:, n_frame].cpu().numpy() > 0
                 tmp_mask = np.concatenate((tmp_mask, tmp_mask), axis=1)
                 inpainted_flow = inpainted_flow * tmp_mask
@@ -390,12 +389,20 @@ def complete_flow(args, forward_flow, backward_flow, masks):
 
             if args.verbose:
                 folder = join(args.verbose_path, 'inpainted_forward_flow', 'step%03d'%step)
-                print('Saving inpainted forward flow into ' + folder)
-                save_flow(completed_forward_flow, folder)
+                print('\n Saving inpainted forward flow into ' + folder)
+
+                try:
+                    save_flow(completed_forward_flow, folder)
+                except:
+                    print('ERROR: BAD FLOW')
 
                 folder = join(args.verbose_path, 'inpainted_backward_flow', 'step%03d'%step)
-                print('Saving inpainted backward flow into ' + folder)
-                save_flow(completed_backward_flow, folder)
+                print('\n Saving inpainted backward flow into ' + folder)
+
+                try:
+                    save_flow(completed_backward_flow, folder)
+                except:
+                    print('ERROR: BAD FLOW')
 
         # end iterative steps
 
