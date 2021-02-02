@@ -20,11 +20,11 @@ if __name__ == '__main__':
 
     parser.add_argument('--mode', default='object_removal', help="modes: object_removal / video_extrapolation")
     parser.add_argument('--seamless', action='store_true', help='Whether operate in the gradient domain')
-    parser.add_argument('--video_path', default='../data/tennis', help="dataset for evaluation")
-    parser.add_argument('--path_mask', default='../data/tennis_mask', help="mask for object removal")
+    parser.add_argument('--video_path', default='../data/tennis', help="Path where the video frames are saved")
+    parser.add_argument('--mask_path', default='../data/tennis_mask', help="Path where the video frames are saved")
     parser.add_argument('--outroot', default='../result/', help="output directory")
 
-    parser.add_argument('--verbose', action='store_true', help='use small model')
+    parser.add_argument('--verbose', action='store_true', help='if activated, save all intermediate steps')
     parser.add_argument('--verbose_path', default='../verbose_output', help='where intermediate results will be saved')
 
     # RAFT
