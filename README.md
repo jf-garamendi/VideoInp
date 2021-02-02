@@ -8,11 +8,6 @@ conda install pytorch=1.7.1 torchvision=0.8.2 cudatoolkit=11 -c pytorch
 pip install -r requirements.txt
 ``` 
 
-
-First to run anything, unzip file weight.zip, this will be create the following file estructure
-./weight/raft-things.pth
-./weight/inpModel/*
-
 ## How to Run an inference
 From ./tools/ use
 
