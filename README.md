@@ -31,7 +31,7 @@ Parameters
 * **--verbose_path _path_** : where intermediate results will be saved
 * **--opticalFlow_model _path_** : Path to the RAFT checkpoint for computing the Optical flow.
 
-Example
+### Example
 ```bash
 python video_completion.py --verbose 
                            --verbose_path ../intermediate_results/
