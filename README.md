@@ -49,7 +49,7 @@ python video_completion.py --verbose
 ``` 
 
 
-##How to check all checkpoints over a given video sequence
+## How to check all checkpoints over a given video sequence
 
 From ./tools/ use
 ```bash
@@ -63,7 +63,7 @@ Parameters to use **from** command line
 * **--video_path _path_** : Path where the video frames are saved
 * **--mask_path _path_** : Path where the video masks are saved
    
-Example
+### Example
 
 ```bash
 python test_pierrick_iterative_checkpoints.py --chk_root_path ../weight/inpModel/ 
@@ -87,7 +87,7 @@ Parameters
 * **--features_perturbation** : If this flag is activated, random noise is added to the result of the encoder (previous to the decoder).
 * **--opticalFlow_model _path_**: Path to the RAFT checkpoint for computing the Optical flow.
 
-###Example
+### Example
 * Check without perturbation
 ```bash
 python check_encoder_decoder.py --video_path ../data/tennis/frames  
@@ -105,7 +105,7 @@ python check_encoder_decoder.py --video_path ../data/tennis/frames
                                 --features_perturbation
 ```
 
-##Version History
+## Version History
 
 In this section, a brief description of what is each version (labels) in the master branch has to be done
 
