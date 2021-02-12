@@ -28,7 +28,7 @@ from RAFT import RAFT
 #from frame_inpaint import DeepFillv1
 #from edgeconnect.networks import EdgeGenerator_
 
-from models.iterative import Flow2features, Features2flow, Res_Update3, Res_Update2, Res_Update4
+from model.iterative import Flow2features, Features2flow, Res_Update3, Res_Update2, Res_Update4
 from utils import flow_viz, frame_utils
 import utils.region_fill as rf
 

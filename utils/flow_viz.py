@@ -16,6 +16,7 @@
 # Date Created: 2018-08-03
 
 import numpy as np
+import os, io
 
 def make_colorwheel():
     """
@@ -130,3 +131,47 @@ def flow_to_image(flow_uv, clip_flow=None, convert_to_bgr=False):
     u = u / (rad_max + epsilon)
     v = v / (rad_max + epsilon)
     return flow_uv_to_colors(u, v, convert_to_bgr)
+
+def read_flow_from_file(path):
+    # Author : George Gach (@georgegach)
+    # Date   : July 2019
+
+    # Adapted from the Middlebury Vision project's Flow-Code
+    # URL    : http://vision.middlebury.edu/flow/
+
+    TAG_FLOAT = 202021.25
+
+    if not isinstance(path, io.BufferedReader):
+        if not isinstance(path, str):
+            raise AssertionError(
+                "Input [{p}] is not a string".format(p=path))
+        if not os.path.isfile(path):
+            raise AssertionError(
+                "Path [{p}] does not exist".format(p=path))
+        if not path.split('.')[-1] == 'flo':
+            raise AssertionError(
+                "File extension [flo] required, [{f}] given".format(f=path.split('.')[-1]))
+
+        flo = open(path, 'rb')
+    else:
+        flo = path
+
+    tag = np.frombuffer(flo.read(4), np.float32, count=1)[0]
+    if not TAG_FLOAT == tag:
+        raise AssertionError("Wrong Tag [{t}]".format(t=tag))
+
+    width = np.frombuffer(flo.read(4), np.int32, count=1)[0]
+    if not (width > 0 and width < 100000):
+        raise AssertionError("Illegal width [{w}]".format(w=width))
+
+    height = np.frombuffer(flo.read(4), np.int32, count=1)[0]
+    if not (width > 0 and width < 100000):
+        raise AssertionError("Illegal height [{h}]".format(h=height))
+
+    nbands = 2
+    tmp = np.frombuffer(flo.read(nbands * width * height * 4),
+                        np.float32, count=nbands * width * height)
+    flow = np.resize(tmp, (int(height), int(width), int(nbands)))
+    flo.close()
+
+    return flow
