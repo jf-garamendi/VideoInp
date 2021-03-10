@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 
 
+
 def get_state_dict_on_cpu(obj):
     cpu_device = torch.device('cpu')
     state_dict = obj.state_dict()

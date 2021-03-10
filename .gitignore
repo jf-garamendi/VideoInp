@@ -129,3 +129,6 @@ dmypy.json
 .pyre/
 .idea/
 /.project
+
+jupyter_drafts
+codigo_a_usar_en_mis_implementaciones

@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 from scipy import interpolate
-
+import RAFT
 
 class InputPadder:
     """ Pads images such that dimensions are divisible by 8 """
@@ -22,6 +22,47 @@ class InputPadder:
         ht, wd = x.shape[-2:]
         c = [self._pad[2], ht-self._pad[3], self._pad[0], wd-self._pad[1]]
         return x[..., c[0]:c[1], c[2]:c[3]]
+
+def initialize_RAFT(args):
+    """Initializes the RAFT model.
+    """
+    model = torch.nn.DataParallel(RAFT.RAFT(args))
+    model.load_state_dict(torch.load(args.opticalFlow_model))
+
+    model = model.module
+    model.to('cuda')
+    model.eval()
+
+    return model
+
+def calculate_flow(model, video, mode):
+    """Calculates optical flow.
+    """
+    if mode not in ['forward', 'backward']:
+        raise NotImplementedError
+
+    nFrame, _, imgH, imgW = video.shape
+    Flow=[]
+
+    with torch.no_grad():
+        for i in range(video.shape[0] - 1):
+            print("\n Calculating {0} flow {1:2d} <---> {2:2d}".format(mode, i, i + 1), '\r', end='')
+            if mode == 'forward':
+                # Flow i -> i + 1
+                image1 = video[i, None]
+                image2 = video[i + 1, None]
+            elif mode == 'backward':
+                # Flow i + 1 -> i
+                image1 = video[i + 1, None]
+                image2 = video[i, None]
+            else:
+                raise NotImplementedError
+
+            _, flow = model(image1, image2, iters=20, test_mode=True)
+            flow = flow[0].permute(1, 2, 0).cpu().numpy()
+            Flow.append(flow)
+
+    return Flow
 
 def forward_interpolate(flow):
     flow = flow.detach().cpu().numpy()

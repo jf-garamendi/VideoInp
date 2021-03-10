@@ -15,24 +15,15 @@ import scipy.ndimage
 #from skimage.feature import canny
 #import torchvision.transforms.functional as F
 
-from RAFT import utils
-from RAFT import RAFT
 
-#import utils.region_fill as rf
-#from utils.Poisson_blend import Poisson_blend
-#from utils.Poisson_blend_img import Poisson_blend_img
-#from get_flowNN import get_flowNN
-#from get_flowNN_gradient import get_flowNN_gradient
-#from utils.common_utils import flow_edge
-#from spatial_inpaint import spatial_inpaint
-#from frame_inpaint import DeepFillv1
-#from edgeconnect.networks import EdgeGenerator_
+from RAFT.utils.utils import initialize_RAFT, calculate_flow
 
 from model.iterative import Flow2features, Features2flow, Res_Update3, Res_Update2, Res_Update4
 from utils import flow_viz, frame_utils
 import utils.region_fill as rf
 
 from tqdm import tqdm
+from utils.data_io import load_video_frames_as_tensor, save_flow_and_img
 
 def create_dir(dir):
     """Creates a directory if not exist.
@@ -40,17 +31,6 @@ def create_dir(dir):
     if not os.path.exists(dir):
         os.makedirs(dir)
 
-def initialize_RAFT(args):
-    """Initializes the RAFT model.
-    """
-    model = torch.nn.DataParallel(RAFT(args))
-    model.load_state_dict(torch.load(args.opticalFlow_model))
-
-    model = model.module
-    model.to('cuda')
-    model.eval()
-
-    return model
 
 def initialize_encoder(weight_path):
     model = Flow2features().cpu().eval()
@@ -113,76 +93,11 @@ def gradient_mask(mask):
 
     return gradient_mask
 
-def calculate_flow(model, video, mode):
-    """Calculates optical flow.
-    """
-    if mode not in ['forward', 'backward']:
-        raise NotImplementedError
-
-    nFrame, _, imgH, imgW = video.shape
-    #Flow = np.empty(((imgH, imgW, 2, 0)), dtype=np.float32)
-    #Flow = np.empty(((nFrame, 2, imgH, imgW)), dtype=np.float32)
-    Flow=[]
-
-
-    with torch.no_grad():
-        for i in range(video.shape[0] - 1):
-            print("\n Calculating {0} flow {1:2d} <---> {2:2d}".format(mode, i, i + 1), '\r', end='')
-            if mode == 'forward':
-                # Flow i -> i + 1
-                image1 = video[i, None]
-                image2 = video[i + 1, None]
-            elif mode == 'backward':
-                # Flow i + 1 -> i
-                image1 = video[i + 1, None]
-                image2 = video[i, None]
-            else:
-                raise NotImplementedError
-
-            _, flow = model(image1, image2, iters=20, test_mode=True)
-            flow = flow[0].permute(1, 2, 0).cpu().numpy()
-            #Flow = np.concatenate((Flow, flow[..., None]), axis=-1)
-            Flow.append(flow)
-
-    return Flow
-
-def load_video_frames(video_path):
-    # Loads frames.
-    frame_filename_list = glob.glob(os.path.join(video_path, '*.png')) + \
-                          glob.glob(os.path.join(video_path, '*.jpg'))
-
-    video = []
-    for filename in sorted(frame_filename_list):
-        video.append(torch.from_numpy(np.array(Image.open(filename)).astype(np.uint8)).permute(2, 0, 1).float())
-
-    video = torch.stack(video, dim=0)
-
-    return video
-
-
-def save_flow(flow, folder):
-    #flow: list of matrices (each matrix is the flow of a frame) of size (H,W,C)
-
-    folder_flow = os.path.join(folder, 'flow_flo')
-    folder_png = os.path.join(folder, 'flow_png')
-
-    create_dir(folder_flow)
-    create_dir(folder_png)
-
-    for i in range(len(flow)):
-        flow_frame = flow[i]
-
-        flow_img = flow_viz.flow_to_image(flow_frame)
-        flow_img = Image.fromarray(flow_img)
-
-        # Saves the flow and flow_img.
-        frame_utils.writeFlow(os.path.join(folder_flow, '%05d.flo' % i), flow_frame)
-        flow_img.save(os.path.join(folder_png, '%05d.png' % i))
 
 def object_removal_seamless(args):
 
     # Loads frames.
-    video = load_video_frames(args.video_path)
+    video = load_video_frames_as_tensor(args.video_path)
     video = video.to('cuda')
 
     # Flow model.
@@ -203,8 +118,8 @@ def object_removal_seamless(args):
 
     if args.verbose:
         print('\n Saving computed flow (without masking) into  ' + args.verbose_path)
-        save_flow(forward_flow, join(args.verbose_path, 'GT_forward_flow'))
-        save_flow(backward_flow, join(args.verbose_path, 'GT_backward_flow'))
+        save_flow_and_img(forward_flow, join(args.verbose_path, 'GT_forward_flow'))
+        save_flow_and_img(backward_flow, join(args.verbose_path, 'GT_backward_flow'))
 
     # free GPU memory,
     video = video.to('cpu')
@@ -344,10 +259,9 @@ def complete_flow(args, forward_flow, backward_flow, masks):
             confidence_new = current_confidence * 0.
             new_F = F * 0.
             for n_frame in tqdm(range(N), desc='  Frame', position=1, leave=False):
+                flow_from_features = F2flow(F[:, n_frame, :, :, :])
+
                 if n_frame + 1 < N:
-                    flow_from_features = F2flow(F[:, n_frame,:,:,:])
-
-
                     grid_f = flow_from_features[:, :2, :,:].permute((0, 2, 3, 1)) + ind
 
                     # Normalize the coordinates to the square [-1,1]
