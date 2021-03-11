@@ -12,8 +12,8 @@ from torch import optim, nn
 
 from torchvision import transforms
 import torch
-
-
+from PIL import Image
+from utils.data_io import create_dir
 # TODO: Argumentos a linea de comandos
 root_dir = '../data_t'
 
@@ -88,7 +88,6 @@ def train_all(flow2F, F2flow, update_net, train_loader, optimizer, loss_computer
 
         it = 0
         for i, (flows_i, mask_i, gt_flows_i) in enumerate(tqdm(train_loader)):
-
             it += 1
 
             initial_confidence = 1 - mask_i
@@ -100,30 +99,23 @@ def train_all(flow2F, F2flow, update_net, train_loader, optimizer, loss_computer
             ind = torch.stack((yy, xx), dim=-1)
             ind = ind.repeat(B, 1, 1, 1)
 
-
-            #F = flow2F(flows_i.view(B * N, C, H, W)).view(B, N, 32, H, W)
             #GT_F = flow2F(gt_flows_i.view(B * N, C, H, W)).view(B, N, 32, H, W)
 
             decoded_flows = flows_i
-
-            step = 0
-            loss_1 = 0
-            loss_2 = 0
+            #F = flow2F(flows_i.view(B * N, C, H, W)).view(B, N, 32, H, W)
             for step in tqdm(range(20), desc='## Step  ##', position=0):
-                # reconstruction_flows = F2flow(F.view(B * N, -1, H, W))
-                F = flow2F(flows_i.view(B * N, C, H, W)).view(B, N, 32, H, W)
-
-                # pointwise_l1_error = (torch.abs(gt_flows.view(B * N, C, H, W) - reconstruction_flows) ** 1).mean(dim=1)
-                # loss_1 = pointwise_l1_error[mask.view(N * B, H, W) == 1].mean()
-                # loss_2 = 0.
+                optimizer.zero_grad()
+                #decoded_flows = F2flow(F.view(B * N, -1, H, W))
+                F = flow2F(decoded_flows.view(B * N, C, H, W)).view(B, N, 32, H, W)
+                #F = flow2F(flows_i.view(B * N, C, H, W)).view(B, N, 32, H, W)
+                all_frames_flow_from_features = F2flow(F.view(B * N, 32, H, W)).view(B, N, C, H, W)
 
                 confidence_new = current_confidence * 0.
 
                 new_F = F * 0
                 #for n_frame in tqdm(range(N), desc='   Frame', position=1, leave=False):
                 for n_frame in range(N):
-
-                    flow_from_features = F2flow(F[:,n_frame])
+                    flow_from_features = all_frames_flow_from_features[:, n_frame]
 
                     ## warping
                     if n_frame + 1 < N:
@@ -179,7 +171,17 @@ def train_all(flow2F, F2flow, update_net, train_loader, optimizer, loss_computer
                     # depending on the update rule of the partial convolution
                     confidence_new[:, n_frame][initial_confidence[:, n_frame] == 1] = 1.
 
-                decoded_flows = F2flow(new_F.view(B * N, -1, H, W))
+                    #Print Results
+                    folder = join('salida_entreno_all', 'mask')
+                    create_dir(folder)
+                    m_np = confidence_new.view(B*N, H, W).numpy()
+                    m_pil = Image.fromarray(255*np.squeeze(m_np[1,:,:]))
+                    if m_pil.mode != 'RGB':
+                        m_pil = m_pil.convert('RGB')
+                    m_pil.save(folder + '/{:04d}.png'.format(n_frame))
+
+                F = F * (confidence_new <= current_confidence) + new_F * (confidence_new > current_confidence)
+                decoded_flows = F2flow(F.view(B * N, -1, H, W))
 
 
                 pointwise_l1_error = torch.abs(gt_flows_i.view(B * N, -1, H, W) - decoded_flows).mean(dim=1)
@@ -205,14 +207,16 @@ def train_all(flow2F, F2flow, update_net, train_loader, optimizer, loss_computer
                 else:
                     loss_2 = loss_1 * 0
 
-                F = F * (confidence_new <= current_confidence) + new_F * (confidence_new > current_confidence)
+                #F = F * (confidence_new <= current_confidence) + new_F * (confidence_new > current_confidence)
+
                 current_confidence = confidence_new * 1.  # mask update before next step
 
-                optimizer.zero_grad()
+
                 total_loss = (1. * loss_1 + 1. * loss_2)
                 print('Loss: ', total_loss.item())
                 total_loss.backward()  # weighting of the loss
                 optimizer.step()
+                decoded_flows = decoded_flows *1
 
             # print loss tatistics
             #print('[Epoch number: %d, Mini-batchees: %5d] loss: %.3f' % (epoch + 1, i + 1, total_loss))
@@ -227,6 +231,8 @@ def train_all(flow2F, F2flow, update_net, train_loader, optimizer, loss_computer
 
             folder = join('salida_entreno_all', 'input_forward_flow')
             tensor_save_flow_and_img(flows_i.view(B * N, C, H, W)[:, 0:2, :, :], folder)
+
+
 
 
 
@@ -397,7 +403,7 @@ if __name__ == '__main__':
     for param in F2flow.parameters():
         param.requires_grad = False
 
-    optimizer = optim.Adam(list(F2flow.parameters()) + list(flow2F.parameters()) + list(update_net.parameters()),
+    optimizer = optim.Adam(update_net.parameters(),
                            lr=1e-4,
                            betas=(0.9, 0.999),
                            weight_decay=0.00004)
