@@ -33,7 +33,9 @@ def main(args):
 
         gt_frames = []
         for filename in frame_filename_list:
-            f = np.array(Image.open(filename)).astype(np.uint8)
+            f = Image.open(filename)
+            
+            f = np.array().astype(np.uint8)
 
             gt_frames.append(f)
 
@@ -186,6 +188,7 @@ if __name__ == "__main__":
                         help='If active, apply mask to the frames before computing the optical flow.')
     parser.add_argument('--apply_mask_after', action='store_true',
                         help='If active, apply mask to the flow after computing the optical flow.')
+    parser.add_argument('--scale_longest_size_to', type = int, default=256)
 
     # RAFT
     parser.add_argument('--opticalFlow_model', default='../weight/raft-things.pth',
