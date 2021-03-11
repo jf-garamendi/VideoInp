@@ -34,8 +34,8 @@ def main(args):
         gt_frames = []
         for filename in frame_filename_list:
             f = Image.open(filename)
-            
-            f = np.array().astype(np.uint8)
+
+            f = np.array(f).astype(np.uint8)
 
             gt_frames.append(f)
 
