@@ -1,0 +1,80 @@
+argon2-cffi @ file:///tmp/build/80754af9/argon2-cffi_1613037097816/work
+async-generator @ file:///home/ktietz/src/ci/async_generator_1611927993394/work
+attrs @ file:///tmp/build/80754af9/attrs_1604765588209/work
+backcall @ file:///home/ktietz/src/ci/backcall_1611930011877/work
+bleach @ file:///tmp/build/80754af9/bleach_1612211392645/work
+certifi==2020.12.5
+cffi @ file:///tmp/build/80754af9/cffi_1613246945912/work
+cloudpickle @ file:///tmp/build/80754af9/cloudpickle_1598884132938/work
+cycler==0.10.0
+cytoolz==0.11.0
+dask @ file:///tmp/build/80754af9/dask-core_1607706933335/work
+decorator==4.4.2
+defusedxml @ file:///home/ktietz/src/ci_mi/defusedxml_1612808095953/work
+entrypoints==0.3
+imagecodecs @ file:///tmp/build/80754af9/imagecodecs_1603270458960/work
+imageio @ file:///tmp/build/80754af9/imageio_1594161405741/work
+imageio-ffmpeg==0.4.3
+importlib-metadata @ file:///tmp/build/80754af9/importlib-metadata_1602276842396/work
+ipykernel @ file:///tmp/build/80754af9/ipykernel_1596207638929/work/dist/ipykernel-5.3.4-py3-none-any.whl
+ipython @ file:///tmp/build/80754af9/ipython_1612212923938/work
+ipython-genutils @ file:///tmp/build/80754af9/ipython_genutils_1606773439826/work
+jedi==0.17.0
+Jinja2 @ file:///tmp/build/80754af9/jinja2_1612213139570/work
+jsonschema @ file:///tmp/build/80754af9/jsonschema_1602607155483/work
+jupyter-client @ file:///tmp/build/80754af9/jupyter_client_1601311786391/work
+jupyter-core @ file:///tmp/build/80754af9/jupyter_core_1612213311222/work
+jupyterlab-pygments @ file:///tmp/build/80754af9/jupyterlab_pygments_1601490720602/work
+kiwisolver @ file:///tmp/build/80754af9/kiwisolver_1604014535162/work
+MarkupSafe==1.1.1
+matplotlib @ file:///tmp/build/80754af9/matplotlib-base_1603378225747/work
+mistune==0.8.4
+mkl-fft==1.2.0
+mkl-random==1.1.1
+mkl-service==2.3.0
+nbclient @ file:///tmp/build/80754af9/nbclient_1613676291033/work
+nbconvert @ file:///tmp/build/80754af9/nbconvert_1601914830498/work
+nbformat @ file:///tmp/build/80754af9/nbformat_1610738111109/work
+nest-asyncio @ file:///tmp/build/80754af9/nest-asyncio_1613680548246/work
+networkx @ file:///tmp/build/80754af9/networkx_1598376031484/work
+notebook @ file:///tmp/build/80754af9/notebook_1611340975709/work
+numpy @ file:///tmp/build/80754af9/numpy_and_numpy_base_1603570489231/work
+olefile==0.46
+opencv-contrib-python==4.5.1.48
+opencv-python==4.5.1.48
+packaging @ file:///tmp/build/80754af9/packaging_1611952188834/work
+pandocfilters @ file:///tmp/build/80754af9/pandocfilters_1605120460739/work
+parso @ file:///tmp/build/80754af9/parso_1607623074025/work
+pexpect @ file:///tmp/build/80754af9/pexpect_1605563209008/work
+pickleshare @ file:///tmp/build/80754af9/pickleshare_1606932040724/work
+Pillow @ file:///tmp/build/80754af9/pillow_1609786786540/work
+prometheus-client @ file:///tmp/build/80754af9/prometheus_client_1606344362066/work
+prompt-toolkit @ file:///tmp/build/80754af9/prompt-toolkit_1602688806899/work
+ptyprocess @ file:///tmp/build/80754af9/ptyprocess_1609355006118/work/dist/ptyprocess-0.7.0-py2.py3-none-any.whl
+pycparser @ file:///tmp/build/80754af9/pycparser_1594388511720/work
+Pygments @ file:///tmp/build/80754af9/pygments_1613849567472/work
+pyparsing==2.4.7
+pyrsistent @ file:///tmp/build/80754af9/pyrsistent_1600141720057/work
+python-dateutil==2.8.1
+PyWavelets @ file:///tmp/build/80754af9/pywavelets_1601658317819/work
+PyYAML==5.3.1
+pyzmq==20.0.0
+scikit-image==0.18.1
+scipy @ file:///tmp/build/80754af9/scipy_1597686649129/work
+Send2Trash @ file:///tmp/build/80754af9/send2trash_1607525499227/work
+sip==4.19.13
+six @ file:///tmp/build/80754af9/six_1605205327372/work
+terminado==0.9.2
+testpath @ file:///home/ktietz/src/ci/testpath_1611930608132/work
+tifffile @ file:///tmp/build/80754af9/tifffile_1607624018440/work
+toolz @ file:///tmp/build/80754af9/toolz_1601054250827/work
+torch==1.7.1
+torchsummary==1.5.1
+torchvision==0.8.2
+tornado @ file:///tmp/build/80754af9/tornado_1606942300299/work
+tqdm==4.56.0
+traitlets @ file:///home/ktietz/src/ci/traitlets_1611929699868/work
+typing-extensions @ file:///tmp/build/80754af9/typing_extensions_1598376058250/work
+wcwidth @ file:///tmp/build/80754af9/wcwidth_1593447189090/work
+webencodings==0.5.1
+zipp @ file:///tmp/build/80754af9/zipp_1604001098328/work
