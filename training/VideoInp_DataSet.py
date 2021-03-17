@@ -66,7 +66,8 @@ class VideoInp_DataSet(Dataset):
             flow = np.concatenate([fwd_flow, bwd_flow], axis=2)  # TODO: Revisar las dimensiones
 
             # Dilate and replicate channels in the mask to 4
-            dilated_mask = scipy.ndimage.binary_dilation(mask, iterations=15)
+            #dilated_mask = scipy.ndimage.binary_dilation(mask, iterations=15)
+            dilated_mask = scipy.ndimage.binary_dilation(mask, iterations=5)
             # Close the small holes inside the foreground objects
             dilated_mask = cv2.morphologyEx(dilated_mask.astype(np.uint8), cv2.MORPH_CLOSE,
                                              np.ones((21, 21), np.uint8)).astype(np.uint8)

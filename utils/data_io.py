@@ -54,7 +54,7 @@ def tensor_save_flow_and_img(flow, folder):
 
     for i in range(flow.shape[0]):
         flow_frame = torch.squeeze(flow[i,:,:,:]).permute((1,2,0))
-        flow_frame = flow_frame.detach().numpy()
+        flow_frame = flow_frame.detach().cpu().numpy()
 
         flow_img = flow_to_image(flow_frame)
         flow_img = Image.fromarray(flow_img)

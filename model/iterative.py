@@ -51,10 +51,12 @@ class Res_Update(nn.Module):
         self.pconv2 = PartialConv2d(64, 32, multi_channel=True, return_mask=True, kernel_size=(3, 3), padding=1)
 
     def forward(self, x, mask=None):
+        x = torch.unsqueeze(x, 0)
+        mask = torch.unsqueeze(mask,0 )
         out1, new_mask = self.pconv1(F.leaky_relu(self.bn1(x)), mask)
         out2, new_mask = self.pconv2(F.leaky_relu(self.bn2(out1)), new_mask)
 
         new_F = (x[:, 32:64] * mask[:, 32:33] + out2 * (1 - mask[:, 32:33]))
 
-        return new_F, new_mask[:,0]
+        return torch.squeeze(new_F), torch.squeeze(new_mask[:,0])
 

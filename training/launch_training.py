@@ -25,9 +25,10 @@ from os.path import join
 
 #Arguments
 
-
-#device = torch.device("cuda:0")
-DEVICE = torch.device("cpu")
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print("DEVICE: ", DEVICE)
+#DEVICE = torch.device("cuda:0")
+#DEVICE = torch.device("cpu")
 
 ################################################################
 
@@ -39,25 +40,26 @@ def train_encoder_decoder(encoder, decoder, train_loader, optim, loss_computer, 
         for i, data in enumerate(train_loader):
             # get the input, data is a tuple composed by
             flows, mask, gt_flows = data
+
             B, N, C, H, W = flows.shape
 
+            #Remove the batch dimension (for pierrick architecture is needed B to be 1)
             flows = flows.view(B * N, C, H, W)
             mask = mask.view(B * N, 1, H, W)
             gt_flows = gt_flows.view(B * N, C, H, W)
 
-            #place data on device
-            #flows.to(DEVICE)
-            #mask.to(DEVICE)
-            #gt_flows.to(DEVICE)
+            # place data on device
+            flows = flows.to(DEVICE)
+            mask = mask.to(DEVICE)
+            gt_flows = gt_flows.to(DEVICE)
 
             # zero the parameter gradients
             optim.zero_grad()
 
-
             # Forward Pass
             computed_flows = decoder(encoder(flows))
 
-            loss = loss_computer(computed_flows, gt_flows, torch.squeeze(mask))
+            loss = loss_computer(computed_flows, gt_flows)
 
             # Backward Pass
             loss.backward()
@@ -68,8 +70,7 @@ def train_encoder_decoder(encoder, decoder, train_loader, optim, loss_computer, 
 
             #print loss tatistics
             if (i) % 2 ==0:
-                print('[Epoch number: %d, Mini-batchees: %5d] loss: %.3f' %(epoch +1, i+1, loss_total))
-                loss_total = 0.0
+                print('[Epoch number: %d, Mini-batchees: %5d] loss: %.3f' %(epoch +1, i+1, loss))
 
                 # save flow images
                 folder = join('salida_entreno_enc_dec', 'computed_forward_flow')
@@ -90,282 +91,158 @@ def train_all(flow2F, F2flow, update_net, train_loader, optimizer, loss_computer
         for i, (flows_i, mask_i, gt_flows_i) in enumerate(tqdm(train_loader)):
             it += 1
 
+            # Remove the batch dimension (for pierrick architecture is needed B to be 1)
+            B, N, C, H, W = flows_i.shape
+            flows_i = flows_i.view(B * N, C, H, W)
+            mask_i = mask_i.view(B * N, 1, H, W)
+            gt_flows_i = gt_flows_i.view(B * N, C, H, W)
+
+            # place data on device
+            flows_i = flows_i.to(DEVICE)
+            mask_i = mask_i.to(DEVICE)
+            gt_flows_i = gt_flows_i.to(DEVICE)
+
             initial_confidence = 1 - mask_i
             current_confidence = initial_confidence
 
-            B, N, C, H, W = flows_i.shape
-
             xx, yy = torch.meshgrid(torch.arange(H), torch.arange(W))
-            ind = torch.stack((yy, xx), dim=-1)
-            ind = ind.repeat(B, 1, 1, 1)
+            ind = torch.stack((yy, xx), dim=-1).to(DEVICE)
 
-            #GT_F = flow2F(gt_flows_i.view(B * N, C, H, W)).view(B, N, 32, H, W)
+            F = flow2F(flows_i)
+            loss_1=0
+            loss_2=0
+            for step in tqdm(range(6), desc='## Step  ##', position=0):
+                all_frames_flow_from_features = F2flow(F)
 
-            decoded_flows = flows_i
-            #F = flow2F(flows_i.view(B * N, C, H, W)).view(B, N, 32, H, W)
-            for step in tqdm(range(20), desc='## Step  ##', position=0):
-                optimizer.zero_grad()
-                #decoded_flows = F2flow(F.view(B * N, -1, H, W))
-                F = flow2F(decoded_flows.view(B * N, C, H, W)).view(B, N, 32, H, W)
-                #F = flow2F(flows_i.view(B * N, C, H, W)).view(B, N, 32, H, W)
-                all_frames_flow_from_features = F2flow(F.view(B * N, 32, H, W)).view(B, N, C, H, W)
-
-                confidence_new = current_confidence * 0.
+                confidence_new = current_confidence + 0
 
                 new_F = F * 0
                 #for n_frame in tqdm(range(N), desc='   Frame', position=1, leave=False):
                 for n_frame in range(N):
-                    flow_from_features = all_frames_flow_from_features[:, n_frame]
+                    decoded_flows = all_frames_flow_from_features[n_frame]
 
                     ## warping
                     if n_frame + 1 < N:
-                        grid_f = flow_from_features[:, :2, :, :].permute((0, 2, 3, 1)) + ind
+                        grid_f = decoded_flows[:2, :, :].permute((1, 2, 0)) + ind
+                        grid_f = torch.unsqueeze(grid_f, 0)
 
                         # Normalize the coordinates to the square [-1,1]
-                        grid_f = (2 * grid_f / torch.tensor([W, H]).cpu().view(1, 1, 1, 2)) - 1
+                        grid_f = (2 * grid_f / torch.tensor([W, H]).view(1, 1, 1, 2).to(DEVICE)) - 1
 
                         # warp ## FORWARD ##
-                        F_f = torch.nn.functional.grid_sample(F[:, n_frame + 1, :, :, :], grid_f,
+                        F2warp = torch.unsqueeze(F[n_frame + 1, :, :, :],0)
+                        F_f = torch.nn.functional.grid_sample(F2warp, grid_f,
                                                               mode='bilinear', padding_mode='border',
                                                               align_corners=False)
+                        F_f = torch.squeeze(F_f)
+
+                        confidence2warp = torch.unsqueeze(current_confidence[n_frame + 1, :, :, :], 0)
                         confidence_f = torch.clamp(
-                            torch.nn.functional.grid_sample(current_confidence[:, n_frame + 1, :, :, :], grid_f,
+                            torch.nn.functional.grid_sample(confidence2warp, grid_f,
                                                             mode='bilinear',
                                                             padding_mode='border', align_corners=False), 0, 1)
-                    else:
-                        F_f = 0. * F[:, n_frame]
-                        confidence_f = 0. * current_confidence[:, n_frame]
-
-                    if n_frame - 1 >= 0:
-
-                        grid_b = flow_from_features[:, 2:].permute(
-                            (0, 2, 3, 1)) + ind  # compute backward flow from features
-
-                        # Normalize the coordinates to the square [-1,1]
-                        grid_b = (2 * grid_b / torch.tensor([W, H]).cpu().view(1, 1, 1, 2)) - 1
-
-                        # warp  ## BACKWARD ##
-                        F_b = torch.nn.functional.grid_sample(F[:, n_frame - 1, :, :, :], grid_b, mode='bilinear',
-                                                              padding_mode='border',
-                                                              align_corners=False)
-                        confidence_b = torch.clamp(
-                            torch.nn.functional.grid_sample(current_confidence[:, n_frame - 1, :, :, :], grid_b,
-                                                            mode='bilinear', padding_mode='border',
-                                                            align_corners=False), 0,1)
-                    else:
-                        F_b = 0. * F[:, n_frame]
-                        confidence_b = 0. * current_confidence[:, n_frame]
-                    # End warping
-
-                    # input of the update network is the concatenation of the obtained features from this frame and the neighboring ones
-                    x = torch.cat((F_b, F[:, n_frame], F_f), dim=1)
-                    confidence_in = torch.cat(((confidence_b).repeat(1, F.shape[2], 1, 1),
-                                               current_confidence[:, n_frame].repeat(1, F.shape[2], 1, 1),
-                                               (confidence_f).repeat(1, F.shape[2], 1, 1)),
-                                              dim=1)  # same goes for the input mask
-
-                    ### UPDATE ###
-                    new_F[:, n_frame], confidence_new[:, n_frame] = update_net(x, confidence_in)  # Update
-
-                    # force the initially confident pixels to stay confident, because a decay can be observed
-                    # depending on the update rule of the partial convolution
-                    confidence_new[:, n_frame][initial_confidence[:, n_frame] == 1] = 1.
-
-                    #Print Results
-                    folder = join('salida_entreno_all', 'mask')
-                    create_dir(folder)
-                    m_np = confidence_new.view(B*N, H, W).numpy()
-                    m_pil = Image.fromarray(255*np.squeeze(m_np[1,:,:]))
-                    if m_pil.mode != 'RGB':
-                        m_pil = m_pil.convert('RGB')
-                    m_pil.save(folder + '/{:04d}.png'.format(n_frame))
-
-                F = F * (confidence_new <= current_confidence) + new_F * (confidence_new > current_confidence)
-                decoded_flows = F2flow(F.view(B * N, -1, H, W))
-
-
-                pointwise_l1_error = torch.abs(gt_flows_i.view(B * N, -1, H, W) - decoded_flows).mean(dim=1)
-                #pointwise_l1_error = torch.abs(GT_F.view(B * N, -1, H, W) - new_F).mean(dim=1)
-                loss_1 = pointwise_l1_error[current_confidence.view(N * B, H, W) == 1].mean()
-
-
-                decoded_flows = decoded_flows.view(B, N, C, H, W)
-
-                # loss2 is the sum of terms from each step of the iterative scheme
-                # we compute loss2 only on the pixels that gained confidence and we weight the result with the new confidence
-                s = ((confidence_new > current_confidence) * confidence_new).sum()
-
-                if s != 0:
-                    loss_2 = (1 - np.exp(-it / (1000 * (step + 1)))) * (
-                            pointwise_l1_error * ((confidence_new > current_confidence) * confidence_new)).sum() / s
-                    # we add the weight  (1-np.exp(-it/(1000*(step+1)))) that makes loss2 be 0 for the first batch iteration, then around 1000, we account for the first step of the iterative scheme, and every 1000, another step is smoothly taken into account.
-                    # justification: in the beginning, we want the translation between fows and features to converge before using the predicted flows to update the features. Alos, since the update is recurrent, we want to train well the first steps of it before adding a new one
-
-
-
-                    # we handcraft the new feature volume
-                else:
-                    loss_2 = loss_1 * 0
-
-                #F = F * (confidence_new <= current_confidence) + new_F * (confidence_new > current_confidence)
-
-                current_confidence = confidence_new * 1.  # mask update before next step
-
-
-                total_loss = (1. * loss_1 + 1. * loss_2)
-                print('Loss: ', total_loss.item())
-                total_loss.backward()  # weighting of the loss
-                optimizer.step()
-                decoded_flows = decoded_flows *1
-
-            # print loss tatistics
-            #print('[Epoch number: %d, Mini-batchees: %5d] loss: %.3f' % (epoch + 1, i + 1, total_loss))
-            #loss_total = 0.0
-
-            # save flow images
-            folder = join('salida_entreno_all', 'computed_forward_flow')
-            tensor_save_flow_and_img(decoded_flows.view(B * N, C, H, W)[:, 0:2, :, :], folder)
-
-            folder = join('salida_entreno_all', 'GT_forward_flow')
-            tensor_save_flow_and_img(gt_flows_i.view(B * N, C, H, W)[:, 0:2, :, :], folder)
-
-            folder = join('salida_entreno_all', 'input_forward_flow')
-            tensor_save_flow_and_img(flows_i.view(B * N, C, H, W)[:, 0:2, :, :], folder)
-
-
-
-
-
-'''
-def train_update(encoder, decoder, update, train_loader, optim, loss_computer, n_epochs):
-    oss_total = 0.0
-
-    for epoch in range(n_epochs):
-        for i, data in enumerate(train_loader):
-            # get the input, data is a tuple composed by
-            flows, mask, gt_flows = data
-            B, N, C, H, W = flows.shape
-
-            flows = flows.view(B * N, C, H, W)
-            mask = mask.view(B * N, 1, H, W)
-            gt_flows = gt_flows.view(B * N, C, H, W)
-
-            # place data on device
-            # flows.to(DEVICE)
-            # mask.to(DEVICE)
-            # gt_flows.to(DEVICE)
-
-            # zero the parameter gradients
-            optim.zero_grad()
-
-            hole = 1 - mask
-            initial_confidence = 1 - mask
-            current_confidence = initial_confidence
-
-            xx, yy = torch.meshgrid(torch.arange(H), torch.arange(W))
-            ind = torch.stack((yy, xx), dim=-1)
-            ind = ind.repeat(B, 1, 1, 1)
-
-            decoded_flows_old = flows
-
-            for step in tqdm(range(40), desc='## Step ##', position=0):
-                mask = mask_i.detach().clone()
-                gt_flows = gt_flows_i.detach().clone()
-                decoded_flows = decoded_flows_old
-
-                optimizer.zero_grad()
-
-                F = flow2F(decoded_flows)
-                
-                confidence_new = current_confidence * 0.
-
-                new_F = F * 0
-                for n_frame in tqdm(range(N), desc='   Frame', position=1, leave=False):
-                    flow_from_features = decoded_flows[n_frame, :, :, :]
-
-                    if n_frame + 1 < N:
-                        grid_f = flow_from_features[:, :2, :, :].permute((0, 2, 3, 1)) + ind
-
-                        # Normalize the coordinates to the square [-1,1]
-                        grid_f = (2 * grid_f / torch.tensor([W, H]).cpu().view(1, 1, 1, 2)) - 1
-
-                        # warp ## FORWARD ##
-                        F_f = torch.nn.functional.grid_sample(F[n_frame + 1, :, :, :], grid_f,
-                                                              mode='bilinear', padding_mode='border',
-                                                              align_corners=False)
-                        confidence_f = torch.clamp(
-                            torch.nn.functional.grid_sample(current_confidence[n_frame + 1, :, :, :], grid_f,
-                                                            mode='bilinear',
-                                                            padding_mode='border', align_corners=False), 0, 1)
+                        confidence_f = torch.squeeze(confidence_f)
                     else:
                         F_f = 0. * F[n_frame]
                         confidence_f = 0. * current_confidence[n_frame]
 
                     if n_frame - 1 >= 0:
 
-                        grid_b = flow_from_features[:, 2:,:,:].permute(
-                            (0, 2, 3, 1)) + ind  # compute backward flow from features
+                        grid_b = decoded_flows[2:].permute(( 1, 2, 0)) + ind  # compute backward flow from features
+                        grid_b = torch.unsqueeze(grid_b, 0)
 
                         # Normalize the coordinates to the square [-1,1]
-                        grid_b = (2 * grid_b / torch.tensor([W, H]).cpu().view(1, 1, 1, 2)) - 1
+                        grid_b = (2 * grid_b / torch.tensor([W, H]).view(1, 1, 1, 2).to(DEVICE)) - 1
 
                         # warp  ## BACKWARD ##
-                        F_b = torch.nn.functional.grid_sample(F[n_frame - 1, :, :, :], grid_b, mode='bilinear',
+                        F2warp = torch.unsqueeze(F[n_frame - 1, :, :, :], 0)
+                        F_b = torch.nn.functional.grid_sample(F2warp, grid_b, mode='bilinear',
                                                               padding_mode='border',
                                                               align_corners=False)
-                        confidence_b = torch.clamp(
-                            torch.nn.functional.grid_sample(current_confidence[n_frame - 1, :, :, :], grid_b,
-                                                            mode='bilinear', padding_mode='border',
-                                                            align_corners=False), 0,
-                            1)
-                    else:
-                        F_b = 0. * F[n_frame]
-                        confidence_b = 0. * current_confidence[:, n_frame]
-                    # --
-                    # input of the update network is the concatenation of the obtained features from this frame and the neighboring ones
-                    x = torch.cat((F_b, F[:, n_frame], F_f), dim=1)
-                    confidence_in = torch.cat(((confidence_b).repeat( F.shape[2], 1, 1),
-                                               current_confidence[:, n_frame].repeat(F.shape[2], 1, 1),
-                                               (confidence_f).repeat( F.shape[2], 1, 1)),
-                                              dim=1)  # same goes for the input mask
+                        F_b = torch.squeeze(F_b)
 
-                    new_F[n_frame], confidence_new[n_frame] = update_net(x, confidence_in)  # Update
+                        confidence2warp = torch.unsqueeze(current_confidence[n_frame - 1, :, :, :], 0)
+                        confidence_b = torch.clamp(
+                            torch.nn.functional.grid_sample(confidence2warp, grid_b,
+                                                            mode='bilinear', padding_mode='border',
+                                                            align_corners=False), 0,1)
+                        confidence_b = torch.squeeze(confidence_b)
+                    else:
+                        F_b = 0. * F[ n_frame]
+                        confidence_b = 0. * current_confidence[n_frame]
+                    # End warping
+
+                    # input of the update network is the concatenation of the obtained features from this frame and the neighboring ones
+                    x = torch.cat((F_b, F[n_frame], F_f), dim=0)
+
+                    confidence_in = torch.cat(((confidence_b).repeat(F_b.shape[0], 1, 1),
+                                               current_confidence[n_frame].repeat(F[n_frame].shape[0], 1, 1),
+                                               (confidence_f).repeat(F_f.shape[0], 1, 1)),
+                                              dim=0)  # same goes for the input mask
+
+                    ### UPDATE ###
+                    new_F[ n_frame], confidence_new[n_frame] = update_net(x, confidence_in)  # Update
 
                     # force the initially confident pixels to stay confident, because a decay can be observed
                     # depending on the update rule of the partial convolution
-                    confidence_new[ n_frame][hole[ n_frame] == 1] = 1.
+                    confidence_new[ n_frame][initial_confidence[ n_frame] == 1] = 1.
+
+                    #Print Results
+                    folder = join('salida_entreno_all', 'mask')
+                    create_dir(folder)
+                    m_np = confidence_new.cpu().numpy()
+                    m_pil = Image.fromarray(255*np.squeeze(m_np[n_frame,:,:]))
+                    if m_pil.mode != 'RGB':
+                        m_pil = m_pil.convert('RGB')
+                    m_pil.save(folder + '/{:04d}_{:02d}.png'.format(n_frame, step))
+
+                decoded_flows = F2flow(new_F)
+
+                pointwise_l1_error = torch.abs(gt_flows_i - decoded_flows).mean(dim=1)
+
+                loss_1 += pointwise_l1_error[torch.squeeze(current_confidence,dim=1) == 1].mean()
+
+                decoded_flows = decoded_flows
 
                 # loss2 is the sum of terms from each step of the iterative scheme
-                decoded_flows = F2flow(new_F.view( N, -1, H, W))
-                decoded_flows_old = decoded_flows.detach().clone()
-                pointwise_l1_error = torch.abs(gt_flows - decoded_flows)
-
                 # we compute loss2 only on the pixels that gained confidence and we weight the result with the new confidence
                 s = ((confidence_new > current_confidence) * confidence_new).sum()
+
                 if s != 0:
-                    loss_2 =  ( pointwise_l1_error * ((confidence_new > current_confidence) * confidence_new)).sum() / s
+                    loss_2 += (1 - np.exp(-it / (1000 * (step + 1)))) * (
+                            pointwise_l1_error * ((confidence_new > current_confidence) * confidence_new)).sum() / s
                     # we add the weight  (1-np.exp(-it/(1000*(step+1)))) that makes loss2 be 0 for the first batch iteration, then around 1000, we account for the first step of the iterative scheme, and every 1000, another step is smoothly taken into account.
                     # justification: in the beginning, we want the translation between fows and features to converge before using the predicted flows to update the features. Alos, since the update is recurrent, we want to train well the first steps of it before adding a new one
 
-                pointwise_l1_error = pointwise_l1_error.view(B * N, C, H, W).mean(dim=1)
-                loss_1 = pointwise_l1_error[current_confidence.view(N * B, H, W) == 1].mean()
-                # we handcraft the new feature volume
+
+                    # we handcraft the new feature volume
+                else:
+                    loss_2 += loss_1 * 0
+
                 F = F * (confidence_new <= current_confidence) + new_F * (confidence_new > current_confidence)
 
                 current_confidence = confidence_new * 1.  # mask update before next step
 
-                total_loss = (1. * loss_1 + 1. * loss_2)
-                print('Loss: ', total_loss.item())
-                total_loss.backward()  # weighting of the loss
-                optimizer.step()
-'''
+            optimizer.zero_grad()
+            total_loss = (1. * loss_1 + 1. * loss_2)
+            print('Loss: ', total_loss.item())
+            total_loss.backward()  # weighting of the loss
+            optimizer.step()
+            decoded_flows = decoded_flows *1
 
-def pierrcik_L1_loss(flow, gt_flow, mask):
+            # print loss tatisticspo00000000000
+
+def mask_L1_loss(flow, gt_flow, mask):
     pointwise_l1_error = (torch.abs(gt_flow - flow) ** 1).mean(dim=1)
     loss_1 = pointwise_l1_error[mask == 1].mean()
 
     return loss_1
 
+def L1_loss(flow, gt_flow):
+    pointwise_l1_error = (torch.abs(gt_flow - flow) ** 1).mean(dim=1)
+    loss_1 = pointwise_l1_error.mean()
+
+    return loss_1
 
 
 if __name__ == '__main__':
@@ -394,8 +271,9 @@ if __name__ == '__main__':
                            weight_decay=0.00004)
 
     #loss
-    loss_computer = pierrcik_L1_loss
-    train_encoder_decoder(flow2F, F2flow, train_loader, optimizer, loss_computer, 3)
+    loss_computer = L1_loss
+    #train_encoder_decoder(flow2F, F2flow, train_loader, optimizer, loss_computer, 240000)
+    train_encoder_decoder(flow2F, F2flow, train_loader, optimizer, loss_computer, 2000)
 
     for param in flow2F.parameters():
         param.requires_grad = False
@@ -408,7 +286,8 @@ if __name__ == '__main__':
                            betas=(0.9, 0.999),
                            weight_decay=0.00004)
     torch.autograd.set_detect_anomaly(True)
-    train_all(flow2F, F2flow, update_net, train_loader, optimizer, loss_computer, 3)
+    loss_computer = mask_L1_loss
+    train_all(flow2F, F2flow, update_net, train_loader, optimizer, loss_computer, 300000)
 
 
 #-----------------------------------------
