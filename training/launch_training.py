@@ -142,7 +142,7 @@ def train_encoder_decoder(encoder, decoder, train_loader, optim, loss_computer, 
             loss2print += loss.item()
 
             #print loss tatistics
-            show_each = 10 #The loss is shown every n_iter
+            show_each = 100 #The loss is shown every n_iter
             if (epoch % show_each == 0) and (TB_writer is not None):
                 show_statistics(epoch, loss.item(), 'Encoder_Decoder', flows, computed_flows, gt_flows, TB_writer)
                 loss2print = 0.0
@@ -283,7 +283,7 @@ def train_all(flow2F, F2flow, update_net, train_loader, optimizer, loss_computer
             decoded_flows = decoded_flows *1
 
             # print loss tatistics
-            show_each = 10  # The loss is shown every n_iter
+            show_each = 100  # The loss is shown every n_iter
             if (epoch % show_each == 0) and (TB_writer is not None):
                 show_statistics(epoch , total_loss.item(), 'Update', flows, decoded_flows, gt_flows, TB_writer)
 
@@ -421,7 +421,7 @@ if __name__ == '__main__':
     #loss
     loss_computer = L1_loss
     #train_encoder_decoder(flow2F, F2flow, train_loader, optimizer, loss_computer, 240000)
-    train_encoder_decoder(flow2F, F2flow, train_loader, enc_dec_optimizer, loss_computer, 200,
+    train_encoder_decoder(flow2F, F2flow, train_loader, enc_dec_optimizer, loss_computer, 20000,
                           ini_epoch= enc_dec_epoch, TB_writer=TB_writer, chk_path=enc_dec_filename)
 
     for param in flow2F.parameters():
@@ -433,6 +433,6 @@ if __name__ == '__main__':
 
     torch.autograd.set_detect_anomaly(True)
     loss_computer = mask_L1_loss
-    train_all(flow2F, F2flow, update_net, train_loader, update_optimizer, loss_computer, 300,
+    train_all(flow2F, F2flow, update_net, train_loader, update_optimizer, loss_computer, 300000,
               ini_epoch=update_epoch, TB_writer=TB_writer, chk_path=update_filename)
 
