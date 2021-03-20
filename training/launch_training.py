@@ -28,8 +28,8 @@ import numpy as np
 from utils.data_io import tensor_save_flow_and_img
 from os.path import join
 
-# TODO: Argumentos a linea de comandos
-root_dir = '../data_t'
+
+root_dir = '../dataset'
 TB_STATS_DIR = './tensor_board'
 ENC_DEC_CHECKPOINT_DIR = './checkpoint/'
 UPDATE_CHECKPOINT_DIR = './checkpoint/'
@@ -157,9 +157,6 @@ def train_encoder_decoder(encoder, decoder, train_loader, optim, loss_computer, 
                     'device': DEVICE
                 }
                 torch.save(chk, chk_path)
-
-
-
 
 
 def train_all(flow2F, F2flow, update_net, train_loader, optimizer, loss_computer, n_epochs=100, ini_epoch=0, TB_writer =None, chk_path=None):
@@ -314,6 +311,8 @@ def optimizer_to(optim, device):
                     subparam.data = subparam.data.to(device)
                     if subparam._grad is not None:
                         subparam._grad.data = subparam._grad.data.to(device)
+
+
 def warp(features, field, device):
     # features: size (CxWxH)
     # field: size (2xWxH)
@@ -415,8 +414,6 @@ if __name__ == '__main__':
     flow2F.train()
     F2flow.train()
     update_net.train()
-
-
 
     #loss
     loss_computer = L1_loss
