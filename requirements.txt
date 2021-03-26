@@ -24,3 +24,4 @@ torchsummary==1.5.1
 torchvision==0.8.2
 tqdm==4.56.0
 webencodings==0.5.1
+torchviz==0.0.1
