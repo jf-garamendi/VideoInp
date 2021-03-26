@@ -31,9 +31,9 @@ from os.path import join
 from torchviz import make_dot
 # PARAMETERS
 
-root_dir = '../dataset'
-TB_STATS_DIR = '../tensor_board'
-VERBOSE_DIR ='../training_out'
+root_dir = '../datasets/5Tennis_no_mask'
+TB_STATS_DIR = '../tensor_board/Pierrick_Overfit_003'
+VERBOSE_DIR ='../training_out_Pierrick_Overfit_003'
 
 CHECKPOINT_DIR = '../checkpoint/'
 CHECKPOINT_FILENAME = 'all.tar'
@@ -77,7 +77,7 @@ def plot_optical_flow(flow, writer, caption=''):
 
     return
 
-def show_statistics(iter, metrics_to_show, titles, pre_caption,  computed_flow, gt_flow, writer):
+def show_statistics(iter, metrics_to_show, titles, pre_caption,  input_flow, computed_flow, gt_flow, writer):
     print(pre_caption + ' [Epoch %5d]' % iter)
     for metric, title in zip(metrics_to_show, titles):
         writer.add_scalar(title, metric, iter)
@@ -89,6 +89,9 @@ def show_statistics(iter, metrics_to_show, titles, pre_caption,  computed_flow, 
 
 
     # save Forward flow images
+    folder = join(VERBOSE_DIR + pre_caption, 'input_forward_flow')
+    tensor_save_flow_and_img(input_flow[:, 0:2, :, :], folder)
+
     folder = join(VERBOSE_DIR + pre_caption, 'computed_forward_flow')
     tensor_save_flow_and_img(computed_flow[:, 0:2, :, :], folder)
 
@@ -96,11 +99,16 @@ def show_statistics(iter, metrics_to_show, titles, pre_caption,  computed_flow, 
     tensor_save_flow_and_img(gt_flow[:, 0:2, :, :], folder)
 
     # save Backward flow images
+    folder = join(VERBOSE_DIR + pre_caption, 'input_backward_flow')
+    tensor_save_flow_and_img(input_flow[:, 2:, :, :], folder)
+
     folder = join(VERBOSE_DIR + pre_caption, 'computed_backward_flow')
     tensor_save_flow_and_img(computed_flow[:, 2:, :, :], folder)
 
     folder = join(VERBOSE_DIR + pre_caption, 'GT_backward_flow')
     tensor_save_flow_and_img(gt_flow[:, 2:, :, :], folder)
+
+
 
 
 #############################
@@ -288,7 +296,7 @@ def train_all(flow2F, F2flow, update_net, train_loader, optimizer, f_loss_all_pi
             if (epoch % SHOW_EACH == 0) and (TB_writer is not None):
                 show_statistics(epoch ,
                                 [loss_encDec_print.item(), loss_update_print.item(), total_loss_print.item(), mu],
-                                ['Encoder/Decoder Loss', 'Update Loss', 'Total loss', 'Mu'], '', new_flow, gt_flows, TB_writer)
+                                ['Encoder/Decoder Loss', 'Update Loss', 'Total loss', 'Mu'], '', iflows, new_flow, gt_flows, TB_writer)
                 loss_encDec_print = 0
                 loss_update_print = 0
                 total_loss_print = 0
@@ -352,7 +360,7 @@ if __name__ == '__main__':
     #Setup the Tensor Board stuff for statistics
     TB_writer = SummaryWriter(TB_STATS_DIR)
 
-    train_data = VideoInp_DataSet(root_dir)
+    train_data = VideoInp_DataSet(root_dir, training=True, random_mask_on_the_fly=True)
     train_loader = DataLoader(train_data, batch_size=1, shuffle=True, drop_last=True)
 
     # Net Models

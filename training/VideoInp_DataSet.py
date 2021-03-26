@@ -14,16 +14,20 @@ import cv2
 np.random.seed(2021)
 random.seed(2021)
 torch.manual_seed(2021)
+from PIL import Image
 
 class VideoInp_DataSet(Dataset):
-    def __init__(self, root_dir, flow_on_the_fly=False, training = True):
+    def __init__(self, root_dir, training = True, random_mask_on_the_fly= False, flow_on_the_fly=False):
         # root_dir:
-        # nFrames:
-        # flow_on_the_fly:
+        # nFrames: NOT IMPLEMENTED
+        # random_mask_on_the_fly: If True, then does not read the mask from file and generate a random square mask
+        # flow_on_the_fly: NOT IMPLEMENTED. Does not read the optical flow from file and Computes it flow on the fly
         # training: If training is True, then we read the Ground Truth
 
         self.root_dir = root_dir
         self.training = training
+
+        self.random_mask_on_the_fly = random_mask_on_the_fly
 
         self.video_folders = list(sorted(listdir(root_dir)))
 
@@ -57,13 +61,24 @@ class VideoInp_DataSet(Dataset):
             # build the complete file names
             mask_name = join(masks_folder, mask_files[i])
 
-            # load the data
-            mask = load_mask(mask_name)
-
+            # load the flow
             fwd_flow = read_flow(join(fwd_flow_folder, fwd_flow_files[i]))
             bwd_flow = read_flow(join(bwd_flow_folder, bwd_flow_files[i]))
 
-            flow = np.concatenate([fwd_flow, bwd_flow], axis=2)  # TODO: Revisar las dimensiones
+            flow = np.concatenate([fwd_flow, bwd_flow], axis=2)
+
+            #Load (or create) mask
+            mask = 0
+            if self.random_mask_on_the_fly:
+                mask = self.compute_random_mask(fwd_flow.shape[0], fwd_flow.shape[1], n_squares = 1)
+                ''' Debug
+                m_pil = Image.fromarray(255 * mask)
+                if m_pil.mode != 'RGB':
+                    m_pil = m_pil.convert('RGB')
+                m_pil.save('borrar_mask.png')
+                '''
+            else:
+                mask = load_mask(mask_name)
 
             # Dilate and replicate channels in the mask to 4
             #dilated_mask = scipy.ndimage.binary_dilation(mask, iterations=15)
@@ -73,19 +88,42 @@ class VideoInp_DataSet(Dataset):
                                              np.ones((21, 21), np.uint8)).astype(np.uint8)
             dilated_mask = scipy.ndimage.binary_fill_holes(dilated_mask).astype(np.uint8)
 
+            #mask the flow
+            masked_flow = flow * np.expand_dims(1 - dilated_mask, -1)
+
             mask_list.append(dilated_mask)
-            flow_list.append(flow)
+            flow_list.append(masked_flow)
 
             if self.training:
-                fwd_flow = read_flow(join(gt_fwd_flow_folder, fwd_flow_files[i]))
-                bwd_flow = read_flow(join(gt_bwd_flow_folder, bwd_flow_files[i]))
+                gt_fwd_flow = read_flow(join(gt_fwd_flow_folder, fwd_flow_files[i]))
+                gt_bwd_flow = read_flow(join(gt_bwd_flow_folder, bwd_flow_files[i]))
 
-                gt_flow = np.concatenate([fwd_flow, bwd_flow], axis=2)  # TODO: Revisar las dimensiones
+                gt_flow = np.concatenate([gt_fwd_flow, gt_bwd_flow], axis=2)
                 gt_flow_list.append(gt_flow)
 
         flow_to_feed, mask_to_feed, gt_flow_to_compare = self.package_data_for_feeding(flow_list, mask_list, gt_flow_list)
 
         return flow_to_feed, mask_to_feed, gt_flow_to_compare
+
+    #def compute_random_mask(self,  max_mask_W, max_mask_H, W_frame, H_frame ):
+    def compute_random_mask(self, H_frame, W_frame, n_squares=1):
+        # TODO: Make max_H, and max_W parameters
+        max_H = H_frame/4
+        max_W = W_frame/4
+
+        mask = np.zeros((H_frame, W_frame)).astype(np.uint8)
+
+        for i in range(n_squares):
+            top_left = (np.random.randint(0,H_frame), np.random.randint(0,W_frame))
+            bottom_right = (
+                np.random.randint(top_left[0], min(H_frame, top_left[0]+max_H)),
+                np.random.randint(top_left[1], min(W_frame, top_left[1]+max_W))
+            )
+
+            mask[top_left[0]:bottom_right[0], top_left[1]:bottom_right[1]] = 1
+
+
+        return mask
 
     def package_data_for_feeding(self, flow_list, mask_list, gt_flow_list):
         # mask_list
