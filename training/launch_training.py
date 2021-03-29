@@ -31,7 +31,9 @@ from os.path import join
 from torchviz import make_dot
 # PARAMETERS
 
-root_dir = '../datasets/5Tennis_no_mask'
+TRAIN_ROOT_DIR = '../datasets/5Tennis_no_mask'
+TEST_ROOT_DIR = '../datasets/5Tennis'
+
 TB_STATS_DIR = '../tensor_board/Pierrick_Overfit_003'
 VERBOSE_DIR ='../training_out_Pierrick_Overfit_003'
 
@@ -168,7 +170,7 @@ def train_encoder_decoder(encoder, decoder, train_loader, optim, loss_computer, 
                 torch.save(chk, chk_path)
 
 
-def train_all(flow2F, F2flow, update_net, train_loader, optimizer, f_loss_all_pixels, f_mask_loss, n_epochs=100, ini_epoch=1, TB_writer =None, chk_path=None):
+def train_all(flow2F, F2flow, update_net, train_loader, test_loader, optimizer, f_loss_all_pixels, f_mask_loss, n_epochs=100, ini_epoch=1, TB_writer =None, chk_path=None):
     mu = 0
     loss_encDec_print = 0
     loss_update_print = 0
@@ -198,7 +200,6 @@ def train_all(flow2F, F2flow, update_net, train_loader, optimizer, f_loss_all_pi
 
             new_flow = iflows
 
-            # TODO: Sustituir el 6 por algo mas inteligente. Iterar hasta que se hayan visitado todos los píxeles internos
             step = -1
             #for step in range(6):
             while (1-confidence_new).sum() >0:
@@ -293,25 +294,134 @@ def train_all(flow2F, F2flow, update_net, train_loader, optimizer, f_loss_all_pi
 
             # print loss tatistics
 
-            if (epoch % SHOW_EACH == 0) and (TB_writer is not None):
-                show_statistics(epoch ,
-                                [loss_encDec_print.item(), loss_update_print.item(), total_loss_print.item(), mu],
-                                ['Encoder/Decoder Loss', 'Update Loss', 'Total loss', 'Mu'], '', iflows, new_flow, gt_flows, TB_writer)
+        if (epoch % SHOW_EACH == 0) and (TB_writer is not None):
+            '''
+            show_statistics(epoch ,
+                            [loss_encDec_print.item(), loss_update_print.item(), total_loss_print.item(), mu],
+                            ['Training Encoder/Decoder Loss', 'Training Update Loss', 'Training Total loss', 'Mu'], 'training', iflows, new_flow, gt_flows, TB_writer)
+            loss_encDec_print = 0
+            loss_update_print = 0
+            total_loss_print = 0
+            '''
+
+            # TEST TODO: Moverlo a una función junto a lo mismo que está en el training
+            for i, (iflows, masks, gt_flows) in enumerate(test_loader):
+                B, N, C, H, W = iflows.shape
+                iflows = iflows.view(B * N, C, H, W)
+                # masks: 1 inside the hole
+                masks = masks.view(B * N, 1, H, W)
+                gt_flows = gt_flows.view(B * N, C, H, W)
+
+                # place data on device
+                iflows = iflows.to(DEVICE)
+                masks = masks.to(DEVICE)
+                gt_flows = gt_flows.to(DEVICE)
+
+                # Initial confidence: 1 outside the mask (the hole), 0 inside
+                initial_confidence = 1 - masks
+                current_confidence = initial_confidence
+                confidence_new = initial_confidence * 0
+
+                # for step in tqdm(range(6), desc='## Step  ##', position=0):
+
+                new_flow = iflows
+
+                step = -1
+                test_total_loss = 0
+                while (1 - confidence_new).sum() > 0:
+                    step += 1
+
+                    current_flow = new_flow.clone().detach()
+
+                    F=0
+                    encDec_flow = 0
+                    with torch.no_grad():
+                        F = flow2F(current_flow)
+                        encDec_flow = F2flow(F)
+
+                    test_loss_encDec = f_mask_loss(encDec_flow, gt_flows, current_confidence)
+
+                    new_F = F * 0
+                    # for n_frame in tqdm(range(N), desc='   Frame', position=1, leave=False):
+                    for n_frame in range(N):
+                        frame_decoded_flow = current_flow[n_frame]
+
+                        with torch.no_grad():
+                            ## warping
+                            if n_frame + 1 < N:
+                                F_f = warp(F[n_frame + 1, :, :, :], frame_decoded_flow[:2, :, :], DEVICE)
+                                confidence_f = warp(current_confidence[n_frame + 1, :, :, :],
+                                                    frame_decoded_flow[:2, :, :], device=DEVICE)
+                            else:
+                                F_f = 0. * F[n_frame]
+                                confidence_f = 0. * current_confidence[n_frame]
+
+                            if n_frame - 1 >= 0:
+                                F_b = warp(F[n_frame - 1, :, :, :], frame_decoded_flow[2:], device=DEVICE)
+                                confidence_b = warp(current_confidence[n_frame - 1, :, :, :], frame_decoded_flow[2:],
+                                                    device=DEVICE)
+                            else:
+                                F_b = 0. * F[n_frame]
+                                confidence_b = 0. * current_confidence[n_frame]
+                            # End warping
+
+                            # input of the update network is the concatenation of the obtained features from this frame and the neighboring ones
+                            x = torch.cat((F_b, F[n_frame], F_f), dim=0)
+
+                            confidence_in = torch.cat(((confidence_b).repeat(F_b.shape[0], 1, 1),
+                                                       current_confidence[n_frame].repeat(F[n_frame].shape[0], 1, 1),
+                                                       (confidence_f).repeat(F_f.shape[0], 1, 1)),
+                                                      dim=0)  # same goes for the input mask
+
+                            # free memry as much as posible
+                            del F_b
+                            del F_f
+                            del frame_decoded_flow
+
+                        ### UPDATE ###
+                        with torch.no_grad():
+                            new_F[n_frame], confidence_new[n_frame] = update_net(x, confidence_in)  # Update
+
+                        del x
+                        del confidence_in
+
+                        # force the initially confident pixels to stay confident, because a decay can be observed
+                        # depending on the update rule of the partial convolution
+                        confidence_new[n_frame][initial_confidence[n_frame] == 1] = 1.
+
+                    gained_confidence = (confidence_new > current_confidence) * confidence_new
+                    F = F * (confidence_new <= current_confidence) + new_F * (confidence_new > current_confidence)
+
+                    new_flow = F2flow(F)
+                    if gained_confidence.sum != 0:
+                        test_loss_update = f_mask_loss(new_flow, gt_flows, gained_confidence)
+
+                        current_confidence = confidence_new * 1.  # mask update before next step
+
+                        mu = 1 - np.exp(-epoch / S_0)
+
+                        test_total_loss += (1. * test_loss_encDec + mu * test_loss_update)
+
+                    del current_flow
+
+                show_statistics(epoch,
+                                [test_loss_encDec.item(), test_loss_update.item(), test_total_loss.item(), mu],
+                                ['Encoder/Decoder Loss', 'Update Loss', 'Total loss', 'Mu'],
+                                'test', iflows, new_flow, gt_flows, TB_writer)
                 loss_encDec_print = 0
                 loss_update_print = 0
                 total_loss_print = 0
 
-
-            if (epoch % SHOW_EACH == 0) and (chk_path is not None):
-                # save checkpoint
-                chk = {
-                    'epoch': epoch,
-                    'enc_state_dict': flow2F.state_dict(),
-                    'dec_state_dict': F2flow.state_dict(),
-                    'update_state_dict': update_net.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict()
-                }
-                torch.save(chk, chk_path)
+        if (epoch % SHOW_EACH == 0) and (chk_path is not None):
+            # save checkpoint
+            chk = {
+                'epoch': epoch,
+                'enc_state_dict': flow2F.state_dict(),
+                'dec_state_dict': F2flow.state_dict(),
+                'update_state_dict': update_net.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict()
+            }
+            torch.save(chk, chk_path)
 
 
 # TODO: Funcion que debe ir a algun fichero de utilidades
@@ -360,8 +470,11 @@ if __name__ == '__main__':
     #Setup the Tensor Board stuff for statistics
     TB_writer = SummaryWriter(TB_STATS_DIR)
 
-    train_data = VideoInp_DataSet(root_dir, training=True, random_mask_on_the_fly=True)
-    train_loader = DataLoader(train_data, batch_size=1, shuffle=True, drop_last=True)
+    train_data = VideoInp_DataSet(TRAIN_ROOT_DIR, training=True, random_mask_on_the_fly=True)
+    train_loader = DataLoader(train_data, batch_size=1, shuffle=True, drop_last=False)
+
+    test_data = VideoInp_DataSet(TEST_ROOT_DIR, training=True, random_mask_on_the_fly=False)
+    test_loader = DataLoader(test_data, batch_size=1, shuffle=False, drop_last=True)
 
     # Net Models
     flow2F = Flow2features()
@@ -410,6 +523,6 @@ if __name__ == '__main__':
     torch.autograd.set_detect_anomaly(True)
 
 
-    train_all(flow2F, F2flow, update_net, train_loader, optimizer, loss_encDec, loss_update, 300000,
+    train_all(flow2F, F2flow, update_net, train_loader, test_loader, optimizer, loss_encDec, loss_update, 300000,
               ini_epoch=epoch, TB_writer=TB_writer, chk_path=checkpoint_filename)
 
