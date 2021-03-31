@@ -90,8 +90,8 @@ def show_statistics(iter, metrics_to_show, titles, caption, input_flow, computed
         writer.add_scalar(title, metric, iter)
         print('\t\t' + title +'  : %.3f' % (metric))
 
-    plot_optical_flow(computed_flow, writer, caption + " : Computed Flows")
-    plot_optical_flow(gt_flow, writer, caption + " : Ground Truth Flows")
+    #plot_optical_flow(computed_flow, writer, caption + " : Computed Flows")
+    #plot_optical_flow(gt_flow, writer, caption + " : Ground Truth Flows")
 
 
 
@@ -221,6 +221,17 @@ def train_all(flow2F, F2flow, update_net, train_loader, test_loader, optimizer, 
 
                         # mask update before next step
                         confidence = confidence_new * 1.
+
+                        #Print masks
+                        folder = join(VERBOSE_DIR, 'masks')
+                        create_dir(folder)
+                        m_np = confidence.cpu().numpy()
+                        for n_frame in range(confidence.shape[0]):
+                            m_pil = Image.fromarray(255 * np.squeeze(m_np[n_frame, :, :]))
+                            if m_pil.mode != 'RGB':
+                                m_pil = m_pil.convert('RGB')
+                            m_pil.save(folder + '/{:04d}_{:02d}.png'.format(n_frame, step))
+
                     mu = 1 - np.exp(-epoch / S_0)
 
                     test_total_loss = (1. * test_loss_encDec + mu * test_loss_update)
