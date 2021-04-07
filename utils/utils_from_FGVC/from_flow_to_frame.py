@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 from utils.utils_from_FGVC.frame_inpaint import DeepFillv1
 from utils.utils_from_FGVC.get_flowNN_gradient import get_flowNN_gradient
+from utils.utils_from_FGVC.get_flowNN import get_flowNN
 from argparse import Namespace
 import scipy.ndimage
 from utils.utils_from_FGVC.Poisson_blend_img import Poisson_blend_img
@@ -16,7 +17,56 @@ def gradient_mask(mask):
     return gradient_mask
 
 def from_flow_to_frame(frames, flows, masks):
+    # inputs are tensors
+
+    # default args from FGVC code:
+    args = Namespace(Nonlocal=False, consistencyThres=float('inf'), alpha=0.1)
+
+    nFrame, C, imgH, imgW = flows.shape
+
+    video = frames.clone().detach().cpu().permute(2, 3, 1, 0).numpy()
+    masks = np.squeeze(masks.clone().detach().cpu().permute(1, 2, 3, 0).numpy().astype(int).astype(bool))
+    masks_dilated = masks
+
+    # translate flow into Forward flow and backward flow
+    flows = flows.clone().detach().cpu().permute(2, 3, 1, 0).numpy()
+    videoFlowF = flows[:, :, 0:2, 0:-1]
+    videoFlowB = flows[:, :, 2:, 1:]
+
+    iter = 0
+    mask_tofill = masks
+    video_comp = video
+
+    # Image inpainting model.
+    # TODO: Remove hardcoded pretrained_model path
+    deepfill = DeepFillv1(pretrained_model="../weight/imagenet_deepfill.pth", image_shape=[imgH, imgW])
+
+    # We iteratively complete the video.
+    while (np.sum(mask_tofill) > 0):
+
+        # Color propagation.
+        video_comp, mask_tofill, _ = get_flowNN(args,
+                                                video_comp,
+                                                mask_tofill,
+                                                videoFlowF,
+                                                videoFlowB,
+                                                None,
+                                                None)
+
+        for i in range(nFrame):
+            mask_tofill[:, :, i] = scipy.ndimage.binary_dilation(mask_tofill[:, :, i], iterations=2)
+
+        mask_tofill, video_comp = spatial_inpaint(deepfill, mask_tofill, video_comp)
+        iter += 1
+
+
+    return video_comp
+
+def from_flow_to_frame_seamless(frames, flows, masks):
     #inputs are tensors
+
+    # default args from FGVC code:
+    args = Namespace(Nonlocal=False, consistencyThres=float('inf'), alpha=0.1)
 
     nFrame, C, imgH, imgW = flows.shape
 
@@ -59,8 +109,7 @@ def from_flow_to_frame(frames, flows, masks):
     deepfill = DeepFillv1(pretrained_model="../weight/imagenet_deepfill.pth", image_shape=[imgH, imgW])
 
     while (np.sum(masks) > 0):
-        #default args from FGVC code:
-        args = Namespace(Nonlocal=False, consistencyThres=float('inf'), alpha=0.1)
+
         # Gradient propagation.
         gradient_x_filled, gradient_y_filled, mask_gradient = \
             get_flowNN_gradient(args,

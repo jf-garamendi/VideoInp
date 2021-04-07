@@ -30,7 +30,7 @@ from utils.data_io import tensor_save_flow_and_img
 from os.path import join
 from torchviz import make_dot
 
-from utils.utils_from_FGVC.from_flow_to_frame import from_flow_to_frame
+from utils.utils_from_FGVC.from_flow_to_frame import from_flow_to_frame_seamless, from_flow_to_frame
 
 # TODO: MUY IMPORTANTE--> Mover la lógica enc/dec/update a los ficheros del modelo ( model/iterative.py)
 
@@ -250,7 +250,8 @@ def train_all(flow2F, F2flow, update_net, train_loader, test_loader, optimizer, 
                                     ['Test Encoder/Decoder Loss', 'Test Update Loss', 'Test Total loss', 'Mu'],
                                     '', iflows, flow, gt_flows, TB_writer)
 
-                    video = from_flow_to_frame(frames=frames, flows=gt_flows, masks=masks)
+                    video = from_flow_to_frame_seamless(frames=frames, flows=gt_flows, masks=masks)
+                    #video = from_flow_to_frame(frames=frames, flows=gt_flows, masks=masks)
                     # print video
                     folder = join(VERBOSE_DIR, 'warped_frames')
                     create_dir(folder)
@@ -259,7 +260,7 @@ def train_all(flow2F, F2flow, update_net, train_loader, test_loader, optimizer, 
                         m_pil = Image.fromarray((255 * np.squeeze(frame_blend)).astype(np.uint8))
                         if m_pil.mode != 'RGB':
                             m_pil = m_pil.convert('RGB')
-                        m_pil.save(folder + '/{:04d}.png'.format(n_frame))
+                        m_pil.save(folder + '/{:04d}_.png'.format(n_frame))
 
 
 
