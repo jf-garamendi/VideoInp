@@ -7,7 +7,7 @@ from glob import glob
 from os.path import join
 from PIL import Image
 import numpy as np
-from RAFT.utils.utils import initialize_RAFT, calculate_flow
+from utils.utils_from_FGVC.RAFT.utils.utils import initialize_RAFT, calculate_flow
 from utils.data_io import create_dir, writeFlow
 
 

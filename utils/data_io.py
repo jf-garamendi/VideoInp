@@ -21,7 +21,7 @@ def create_dir(dir):
     if not os.path.exists(dir):
         os.makedirs(dir)
 
-def load_mask(path_to_mask):
+def read_mask(path_to_mask):
     pil_mask = Image.open(path_to_mask).convert('L')
 
     mask = np.array(pil_mask).astype(np.uint8)
@@ -29,6 +29,12 @@ def load_mask(path_to_mask):
 
     return mask
 
+def read_frame(path_to_image):
+    pil_img = Image.open(path_to_image)
+
+    img = np.array(pil_img).astype(np.float)/255
+
+    return img
 def load_video_frames_as_tensor(video_path):
     # Loads frames.
     frame_filename_list = glob.glob(os.path.join(video_path, '*.png')) + \
@@ -37,7 +43,7 @@ def load_video_frames_as_tensor(video_path):
     video = []
     for filename in sorted(frame_filename_list):
         # TODO: check permute dimensions
-        video.append(torch.from_numpy(np.array(Image.open(filename)).astype(np.uint8)).permute(2, 0, 1).float())
+        video.append(torch.from_numpy(read_frame(filename)).permute(2, 0, 1).float())
 
     video = torch.stack(video, dim=0)
 
@@ -226,7 +232,7 @@ def read_gen(file_name, pil=False):
     elif ext == '.bin' or ext == '.raw':
         return np.load(file_name)
     elif ext == '.flo':
-        return readFlow(file_name).astype(np.float32)
+        return read_flow(file_name).astype(np.float32)
     elif ext == '.pfm':
         flow = readPFM(file_name).astype(np.float32)
         if len(flow.shape) == 2:

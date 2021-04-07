@@ -30,6 +30,8 @@ from utils.data_io import tensor_save_flow_and_img
 from os.path import join
 from torchviz import make_dot
 
+from utils.utils_from_FGVC.from_flow_to_frame import from_flow_to_frame
+
 # TODO: MUY IMPORTANTE--> Mover la lógica enc/dec/update a los ficheros del modelo ( model/iterative.py)
 
 ########################################################################################################################
@@ -37,12 +39,12 @@ from torchviz import make_dot
 
 TRAIN_ROOT_DIR = '../datasets/5Tennis_no_mask'
 #TRAIN_ROOT_DIR = '../datasets/5Tennis'
-TEST_ROOT_DIR = '../datasets/5Tennis'
+TEST_ROOT_DIR = '../datasets/5Tennis_b'
 
-TB_STATS_DIR = '../tensor_board/Pierrick_Overfit_005'
-VERBOSE_DIR ='../training_out/Pierrick_Overfit_005'
+TB_STATS_DIR = '../tensor_board/Pierrick_Overfit_007'
+VERBOSE_DIR ='../training_out/Pierrick_Overfit_007'
 
-CHECKPOINT_DIR = '../checkpoint/Pierrick_Overfit_005'
+CHECKPOINT_DIR = '../checkpoint/Pierrick_Overfit_007'
 CHECKPOINT_FILENAME = 'all.tar'
 
 S_0 = 1000
@@ -126,12 +128,16 @@ def train_all(flow2F, F2flow, update_net, train_loader, test_loader, optimizer, 
     loss_update_print = 0
     total_loss_print = 0
     for epoch in range(ini_epoch, ini_epoch + n_epochs+1):
-        for i, (iflows, masks, gt_flows) in enumerate(train_loader):
+        for i, (frames, iflows, masks, gt_frames, gt_flows) in enumerate(train_loader):
             # Remove the batch dimension (for pierrick architecture is needed B to be 1)
             B, N, C, H, W = iflows.shape
+
+            frames = frames.view(B*N, 3, H, W)
             iflows = iflows.view(B * N, C, H, W)
             # masks: 1 inside the hole
             masks = masks.view(B * N, 1, H, W)
+
+            gt_frames = gt_frames.view(B*N, 3, H, W)
             gt_flows = gt_flows.view(B * N, C, H, W)
 
             # place data on device
@@ -180,12 +186,15 @@ def train_all(flow2F, F2flow, update_net, train_loader, test_loader, optimizer, 
         if (epoch % SHOW_EACH == 0) and (TB_writer is not None):
             # TEST TODO: Moverlo a una función junto a lo mismo que está en el training
             with torch.no_grad():
-                for i, (iflows, masks, gt_flows) in enumerate(test_loader):
+                for i, (frames, iflows, masks, gt_frames, gt_flows) in enumerate(test_loader):
                     # Remove the batch dimension (for pierrick architecture is needed B to be 1)
                     B, N, C, H, W = iflows.shape
+
+                    frames = frames.view(B*N, 3, H, W)
                     iflows = iflows.view(B * N, C, H, W)
                     # masks: 1 inside the hole
                     masks = masks.view(B * N, 1, H, W)
+                    gt_frames = gt_frames.view(B*N, 3, H, W)
                     gt_flows = gt_flows.view(B * N, C, H, W)
 
                     # place data on device
@@ -240,6 +249,18 @@ def train_all(flow2F, F2flow, update_net, train_loader, test_loader, optimizer, 
                                     [test_loss_encDec.item(), test_loss_update.item(), test_total_loss.item(), mu],
                                     ['Test Encoder/Decoder Loss', 'Test Update Loss', 'Test Total loss', 'Mu'],
                                     '', iflows, flow, gt_flows, TB_writer)
+
+                    video = from_flow_to_frame(frames=frames, flows=gt_flows, masks=masks)
+                    # print video
+                    folder = join(VERBOSE_DIR, 'warped_frames')
+                    create_dir(folder)
+                    for n_frame in range(video.shape[3]):
+                        frame_blend = video[:,:,:,n_frame]
+                        m_pil = Image.fromarray((255 * np.squeeze(frame_blend)).astype(np.uint8))
+                        if m_pil.mode != 'RGB':
+                            m_pil = m_pil.convert('RGB')
+                        m_pil.save(folder + '/{:04d}.png'.format(n_frame))
+
 
 
 

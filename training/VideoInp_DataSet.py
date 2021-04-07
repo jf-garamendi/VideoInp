@@ -5,7 +5,7 @@ from os.path import join
 from utils.data_io import read_flow
 import numpy as np
 from utils.frame_utils import  apply_mask
-from utils.data_io import load_mask
+from utils.data_io import read_mask, read_frame
 import constants
 import random
 import scipy.ndimage
@@ -36,6 +36,7 @@ class VideoInp_DataSet(Dataset):
         return len(self.video_folders)
 
     def __getitem__(self, idx):
+        # TODO: Split this function into smallest atomic functions (inside these functions do the for loop)
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
@@ -44,22 +45,27 @@ class VideoInp_DataSet(Dataset):
         masks_folder = join(video_folder, constants.MASKS_FOLDER)
         fwd_flow_folder = join(video_folder, constants.FWD_FLOW_FOLDER)
         bwd_flow_folder = join(video_folder, constants.BWD_FLOW_FOLDER)
+        frames_folder = join(video_folder, constants.FRAMES_FOLDER)
 
         gt_fwd_flow_folder = join(video_folder, constants.GT_FWD_FLOW_FOLDER)
         gt_bwd_flow_folder = join(video_folder, constants.GT_BWD_FLOW_FOLDER)
+        gt_frames_folder = join(video_folder, constants.GT_FRAMES_FOLDER)
 
         mask_files = list(sorted(listdir(masks_folder)))
+        frame_files = list(sorted(listdir(frames_folder)))
 
         fwd_flow_files = list(sorted(listdir(fwd_flow_folder)))
         bwd_flow_files = list(sorted(listdir(bwd_flow_folder)))
 
         mask_list = []
+        frames_list = []
         flow_list = []
         gt_flow_list = []
+        gt_frames_list = []
 
-        for i in range(len(fwd_flow_files)):
-            # build the complete file names
-            mask_name = join(masks_folder, mask_files[i])
+        for i in range(len(frame_files)):
+            #load frames
+            frame = read_frame(join(frames_folder, frame_files[i]))
 
             # load the flow
             fwd_flow = read_flow(join(fwd_flow_folder, fwd_flow_files[i]))
@@ -71,39 +77,44 @@ class VideoInp_DataSet(Dataset):
             mask = 0
             if self.random_mask_on_the_fly:
                 mask = self.compute_random_mask(fwd_flow.shape[0], fwd_flow.shape[1], n_squares = 1)
-                ''' Debug
-                m_pil = Image.fromarray(255 * mask)
-                if m_pil.mode != 'RGB':
-                    m_pil = m_pil.convert('RGB')
-                m_pil.save('borrar_mask.png')
-                '''
             else:
-                mask = load_mask(mask_name)
+                mask_name = join(masks_folder, mask_files[i])
+                mask = read_mask(mask_name)
 
-            # Dilate and replicate channels in the mask to 4
-            #dilated_mask = scipy.ndimage.binary_dilation(mask, iterations=15)
+            ''' The dilation should be part of the model or at least out of the feeding
+            # Dilate and replicate channels in the mask to 4            
             dilated_mask = scipy.ndimage.binary_dilation(mask, iterations=5)
             # Close the small holes inside the foreground objects
             dilated_mask = cv2.morphologyEx(dilated_mask.astype(np.uint8), cv2.MORPH_CLOSE,
                                              np.ones((21, 21), np.uint8)).astype(np.uint8)
             dilated_mask = scipy.ndimage.binary_fill_holes(dilated_mask).astype(np.uint8)
+            '''
+            dilated_mask = mask
 
             #mask the flow
             masked_flow = flow * np.expand_dims(1 - dilated_mask, -1)
 
+            #mask the frames
+            masked_frame = frame * np.expand_dims(1-dilated_mask, -1)
+
+            frames_list.append(masked_frame)
             mask_list.append(dilated_mask)
             flow_list.append(masked_flow)
 
             if self.training:
+                gt_frame = read_frame(join(gt_frames_folder, frame_files[i]))
+                gt_frames_list.append(gt_frame)
+
                 gt_fwd_flow = read_flow(join(gt_fwd_flow_folder, fwd_flow_files[i]))
                 gt_bwd_flow = read_flow(join(gt_bwd_flow_folder, bwd_flow_files[i]))
 
                 gt_flow = np.concatenate([gt_fwd_flow, gt_bwd_flow], axis=2)
                 gt_flow_list.append(gt_flow)
 
-        flow_to_feed, mask_to_feed, gt_flow_to_compare = self.package_data_for_feeding(flow_list, mask_list, gt_flow_list)
+        frames_to_feed, flow_to_feed, mask_to_feed, gt_frames_to_compare, gt_flow_to_compare = \
+            self.package_data_for_feeding(frames_list, flow_list, mask_list, gt_frames_list, gt_flow_list)
 
-        return flow_to_feed, mask_to_feed, gt_flow_to_compare
+        return frames_to_feed, flow_to_feed, mask_to_feed, gt_frames_to_compare, gt_flow_to_compare
 
     #def compute_random_mask(self,  max_mask_W, max_mask_H, W_frame, H_frame ):
     def compute_random_mask(self, H_frame, W_frame, n_squares=1):
@@ -126,20 +137,26 @@ class VideoInp_DataSet(Dataset):
 
         return mask
 
-    def package_data_for_feeding(self, flow_list, mask_list, gt_flow_list):
+    def package_data_for_feeding(self, frames_list, flow_list, mask_list, gt_frames_list, gt_flow_list):
         # mask_list
         # flow_list: list, each element HxWxC, where C=4 --> two first forward, two last bwd
         # gt_flow_list: list, each element HxWxC, where C=4 --> two first forward, two last bwd
 
+        frames = np.stack(frames_list)
         flow = np.stack(flow_list)
         mask = np.stack(mask_list)
+
+        gt_frames = np.stack(gt_frames_list)
         gt_flow = np.stack(gt_flow_list)
 
+        frames = torch.from_numpy(frames).permute(0, 3, 1, 2).contiguous().float()
         flow = torch.from_numpy(flow).permute(0, 3, 1, 2).contiguous().float()
         mask = torch.from_numpy(mask).view(mask.shape[0], 1, mask.shape[1], mask.shape[2]).contiguous().float()
+
+        gt_frames = torch.from_numpy(gt_frames).permute(0,3,1,2).contiguous().float()
         gt_flow = torch.from_numpy(gt_flow).permute(0, 3, 1, 2).contiguous().float()
 
-        return flow, mask, gt_flow
+        return frames, flow, mask, gt_frames, gt_flow
 
     ''' THIS SHOULD BE NEEDED IN THE FUTURE, intercala las mascaras y los optical flow
     def package_data_for_feeding(self, mask_list, flow_list, gt_flow_list):
