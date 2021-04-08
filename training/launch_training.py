@@ -245,13 +245,19 @@ def train_all(flow2F, F2flow, update_net, train_loader, test_loader, optimizer, 
 
                     test_total_loss = (1. * test_loss_encDec + mu * test_loss_update)
 
+                    #video = from_flow_to_frame_seamless(frames=frames, flows=flow, masks=masks)
+                    video = from_flow_to_frame(frames=frames, flows=flow, masks=masks)
+                    video_gt = gt_frames.clone().detach().cpu().permute(2, 3, 1, 0).numpy()
+                    #pointwise_error = np.sum(np.abs(gt_frames - frames), axis=2)
+                    pointwise_error = np.sum(np.abs(video - video_gt), axis=2)
+                    frame_error = np.sum(np.sum(pointwise_error, axis=0))
+
                     show_statistics(epoch,
-                                    [test_loss_encDec.item(), test_loss_update.item(), test_total_loss.item(), mu],
-                                    ['Test Encoder/Decoder Loss', 'Test Update Loss', 'Test Total loss', 'Mu'],
+                                    [test_loss_encDec.item(), test_loss_update.item(), test_total_loss.item(), frame_error, mu],
+                                    ['Test Encoder/Decoder Loss', 'Test Update Loss', 'Test Total loss', 'Frame Difference', 'Mu'],
                                     '', iflows, flow, gt_flows, TB_writer)
 
-                    video = from_flow_to_frame_seamless(frames=frames, flows=gt_flows, masks=masks)
-                    #video = from_flow_to_frame(frames=frames, flows=gt_flows, masks=masks)
+
                     # print video
                     folder = join(VERBOSE_DIR, 'warped_frames')
                     create_dir(folder)
