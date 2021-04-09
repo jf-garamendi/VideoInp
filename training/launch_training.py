@@ -15,7 +15,7 @@ import torch
 import torchvision
 from PIL import Image
 from utils.data_io import create_dir
-from model.flow_losses import  mask_L1_loss, L1_loss
+from model.flow_losses import  mask_L1_loss, L1_loss, TV_loss, minfbbf_loss
 
 from torch.utils.tensorboard import SummaryWriter
 import matplotlib.pyplot as plt
@@ -41,10 +41,10 @@ TRAIN_ROOT_DIR = '../datasets/5Tennis_no_mask'
 #TRAIN_ROOT_DIR = '../datasets/5Tennis'
 TEST_ROOT_DIR = '../datasets/5Tennis_b'
 
-TB_STATS_DIR = '../tensor_board/Pierrick_Overfit_007'
-VERBOSE_DIR ='../training_out/Pierrick_Overfit_007'
+TB_STATS_DIR = '../tensor_board/Pierrick_Overfit_008'
+VERBOSE_DIR ='../training_out/Pierrick_Overfit_008'
 
-CHECKPOINT_DIR = '../checkpoint/Pierrick_Overfit_007'
+CHECKPOINT_DIR = '../checkpoint/Pierrick_Overfit_008'
 CHECKPOINT_FILENAME = 'all.tar'
 
 S_0 = 1000
@@ -169,12 +169,15 @@ def train_all(flow2F, F2flow, update_net, train_loader, test_loader, optimizer, 
                 F = F * (confidence_new <= confidence) + new_F * (confidence_new > confidence)
 
                 new_flow = F2flow(F)
+
+                loss_TV = TV_loss(new_flow, DEVICE)
+                loss_minfbbf = 0#minfbbf_loss(new_flow, DEVICE)
                 if gained_confidence.sum != 0:
                     loss_update = f_mask_loss(new_flow, gt_flows, gained_confidence)
 
-                    mu = 1 - np.exp(-epoch / S_0)
+                    mu = torch.tensor([1 - np.exp(-epoch / S_0)]).to(DEVICE)
 
-                    total_loss = (1. * loss_encDec + mu * loss_update)
+                    total_loss = ( loss_encDec + mu * (loss_update + loss_TV + loss_minfbbf))
 
                     total_loss.backward()  # weighting of the loss
                     optimizer.step()
@@ -225,6 +228,8 @@ def train_all(flow2F, F2flow, update_net, train_loader, test_loader, optimizer, 
                         F = F * (confidence_new <= confidence) + new_F * (confidence_new > confidence)
 
                         flow = F2flow(F)
+                        test_loss_TV = TV_loss(flow, DEVICE)
+                        test_loss_minfbbf = 0 #minfbbf_loss(flow, DEVICE)
                         if gained_confidence.sum != 0:
                             test_loss_update += f_mask_loss(flow, gt_flows, gained_confidence)
 
@@ -243,7 +248,7 @@ def train_all(flow2F, F2flow, update_net, train_loader, test_loader, optimizer, 
 
                     mu = 1 - np.exp(-epoch / S_0)
 
-                    test_total_loss = (1. * test_loss_encDec + mu * test_loss_update)
+                    test_total_loss = (1. * test_loss_encDec + mu * (test_loss_update + test_loss_TV +test_loss_minfbbf))
 
                     #video = from_flow_to_frame_seamless(frames=frames, flows=flow, masks=masks)
                     video = from_flow_to_frame(frames=frames, flows=flow, masks=masks)
@@ -253,8 +258,8 @@ def train_all(flow2F, F2flow, update_net, train_loader, test_loader, optimizer, 
                     frame_error = np.sum(np.sum(pointwise_error, axis=0))
 
                     show_statistics(epoch,
-                                    [test_loss_encDec.item(), test_loss_update.item(), test_total_loss.item(), frame_error, mu],
-                                    ['Test Encoder/Decoder Loss', 'Test Update Loss', 'Test Total loss', 'Frame Difference', 'Mu'],
+                                    [test_loss_encDec.item(), test_loss_update.item(), test_total_loss.item(), test_loss_TV, test_loss_minfbbf, frame_error, mu],
+                                    ['Test Encoder/Decoder Loss', 'Test Update Loss', 'Test Total loss', 'Total Variation Loss', 'Min fb/bf Loss', 'Frame Difference', 'Mu'],
                                     '', iflows, flow, gt_flows, TB_writer)
 
 
@@ -313,7 +318,7 @@ def warp(features, field, device):
     field = torch.unsqueeze(field, 0)
 
     # Normalize the coordinates to the square [-1,1]
-    field = (2 * field / torch.tensor([W, H]).view(1, 1, 1, 2).to(DEVICE)) - 1
+    field = (2 * field / torch.tensor([W, H]).view(1, 1, 1, 2).to(device)) - 1
 
     # warp ## FORWARD ##
     features2warp = torch.unsqueeze(features, 0)
