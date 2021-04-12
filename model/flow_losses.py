@@ -3,14 +3,22 @@ import torch.nn.functional
 
 def minfbbf_loss(flows, device):
     def fb(f, b):
-        xx, yy = torch.meshgrid(torch.arange(f.shape[-2]), torch.arange(f.shape[-1]))
-        ind = torch.stack((yy, xx), dim=-1)
-        ind = ind.repeat(f.shape[0], 1, 1, 1).to(device)
-        grid = f.permute(( 2, 3, 1)) + ind
-        grid = (2 * grid / torch.tensor([f.shape[-1] * 1., f.shape[-2] * 1.]).to(device).view(1, 1, 1, 2)) - 1
+        C, H, W = f.shape
+        xx, yy = torch.meshgrid(torch.arange(H), torch.arange(W))
+        ind = torch.stack((yy, xx), dim=-1).to(device)
 
-        interp = torch.nn.functional.grid_sample(b, grid, mode='bilinear', padding_mode='border', align_corners=False)
-        d = torch.norm(interp + f, dim=1)
+        grid = f.permute(( 1, 2, 0)) + ind
+        grid = torch.unsqueeze(grid,0)
+
+        #Normalize coordinates to the square [-1, 1]
+        grid = (2*grid / torch.tensor([W, H]).view(1,1,1,2).to(device))-1
+
+        b2warp = torch.unsqueeze(b, 0)
+        interp = torch.nn.functional.grid_sample(b2warp, grid,
+                                                 mode='bilinear', padding_mode='border',
+                                                 align_corners=False)
+        warped_b = torch.squeeze(interp)
+        d = torch.norm(warped_b + f, dim=0)
 
         return d
 

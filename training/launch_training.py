@@ -41,10 +41,10 @@ TRAIN_ROOT_DIR = '../datasets/5Tennis_no_mask'
 #TRAIN_ROOT_DIR = '../datasets/5Tennis'
 TEST_ROOT_DIR = '../datasets/5Tennis_b'
 
-TB_STATS_DIR = '../tensor_board/Pierrick_Overfit_009'
-VERBOSE_DIR ='../training_out/Pierrick_Overfit_009'
+TB_STATS_DIR = '../tensor_board/Pierrick_Overfit_010'
+VERBOSE_DIR ='../training_out/Pierrick_Overfit_010'
 
-CHECKPOINT_DIR = '../checkpoint/Pierrick_Overfit_009'
+CHECKPOINT_DIR = '../checkpoint/Pierrick_Overfit_010'
 CHECKPOINT_FILENAME = 'all.tar'
 
 S_0 = 1000
@@ -171,7 +171,7 @@ def train_all(flow2F, F2flow, update_net, train_loader, test_loader, optimizer, 
                 new_flow = F2flow(F)
 
                 loss_TV = 1e-6*TV_loss(new_flow, DEVICE)
-                loss_minfbbf = 0#minfbbf_loss(new_flow, DEVICE)
+                loss_minfbbf = minfbbf_loss(new_flow, DEVICE)
                 if gained_confidence.sum != 0:
                     loss_update = f_mask_loss(new_flow, gt_flows, gained_confidence)
 
@@ -229,7 +229,7 @@ def train_all(flow2F, F2flow, update_net, train_loader, test_loader, optimizer, 
 
                         flow = F2flow(F)
                         test_loss_TV = 1e-6*TV_loss(flow, DEVICE)
-                        test_loss_minfbbf = 0 #minfbbf_loss(flow, DEVICE)
+                        test_loss_minfbbf = minfbbf_loss(flow, DEVICE)
                         if gained_confidence.sum != 0:
                             test_loss_update += f_mask_loss(flow, gt_flows, gained_confidence)
 
@@ -305,8 +305,8 @@ def optimizer_to(optim, device):
 
 
 def warp(features, field, device):
-    # features: size (CxWxH)
-    # field: size (2xWxH)
+    # features: size (CxHxW)
+    # field: size (2xHxW)
 
     C, H, W = features.shape
 
