@@ -6,7 +6,7 @@ from utils.data_io import read_flow
 import numpy as np
 from utils.frame_utils import  apply_mask
 from utils.data_io import read_mask, read_frame
-import constants
+import training_parameters
 import random
 import scipy.ndimage
 import cv2
@@ -42,14 +42,14 @@ class VideoInp_DataSet(Dataset):
 
         video_folder = join(self.root_dir, self.video_folders[idx])
 
-        masks_folder = join(video_folder, constants.MASKS_FOLDER)
-        fwd_flow_folder = join(video_folder, constants.FWD_FLOW_FOLDER)
-        bwd_flow_folder = join(video_folder, constants.BWD_FLOW_FOLDER)
-        frames_folder = join(video_folder, constants.FRAMES_FOLDER)
+        masks_folder = join(video_folder, training_parameters.MASKS_FOLDER)
+        fwd_flow_folder = join(video_folder, training_parameters.FWD_FLOW_FOLDER)
+        bwd_flow_folder = join(video_folder, training_parameters.BWD_FLOW_FOLDER)
+        frames_folder = join(video_folder, training_parameters.FRAMES_FOLDER)
 
-        gt_fwd_flow_folder = join(video_folder, constants.GT_FWD_FLOW_FOLDER)
-        gt_bwd_flow_folder = join(video_folder, constants.GT_BWD_FLOW_FOLDER)
-        gt_frames_folder = join(video_folder, constants.GT_FRAMES_FOLDER)
+        gt_fwd_flow_folder = join(video_folder, training_parameters.GT_FWD_FLOW_FOLDER)
+        gt_bwd_flow_folder = join(video_folder, training_parameters.GT_BWD_FLOW_FOLDER)
+        gt_frames_folder = join(video_folder, training_parameters.GT_FRAMES_FOLDER)
 
         mask_files = list(sorted(listdir(masks_folder)))
         frame_files = list(sorted(listdir(frames_folder)))

@@ -11,7 +11,7 @@ from utils.utils_from_FGVC.RAFT.utils.utils import initialize_RAFT, calculate_fl
 from utils.data_io import create_dir, writeFlow
 
 
-import constants
+import training_parameters
 import torch
 
 def main(args):
@@ -26,8 +26,8 @@ def main(args):
         out_dir = join(args.out_dir, video_path)
 
         video_path = join(args.in_root_dir, video_path)
-        frame_filename_list = glob(join(video_path, constants.FRAMES_FOLDER, '*.png')) +\
-                              glob(join(video_path, constants.MASKS_FOLDER, '*.jpg'))
+        frame_filename_list = glob(join(video_path, training_parameters.FRAMES_FOLDER, '*.png')) + \
+                              glob(join(video_path, training_parameters.MASKS_FOLDER, '*.jpg'))
 
         frame_filename_list = sorted(frame_filename_list)
 
@@ -66,13 +66,13 @@ def main(args):
 def save_data(masks, masked_frames, fwd_flow, bwd_flow, gt_frames, gt_fwd_flow, gt_bwd_flow, out_dir):
 
     folders = {
-        "mask_dir": join(out_dir, constants.MASKS_FOLDER),
-        "frame_dir" : join(out_dir, constants.FRAMES_FOLDER),
-        "fwd_flow_dir" : join(out_dir, constants.FWD_FLOW_FOLDER),
-        "bwd_flow_dir" : join(out_dir, constants.BWD_FLOW_FOLDER),
-        "gt_frame_dir" : join(out_dir, constants.GT_FRAMES_FOLDER),
-        "gt_fwd_flow_dir" : join(out_dir, constants.GT_FWD_FLOW_FOLDER),
-        "gt_bwd_flow_dir" : join(out_dir, constants.GT_BWD_FLOW_FOLDER)
+        "mask_dir": join(out_dir, training_parameters.MASKS_FOLDER),
+        "frame_dir" : join(out_dir, training_parameters.FRAMES_FOLDER),
+        "fwd_flow_dir" : join(out_dir, training_parameters.FWD_FLOW_FOLDER),
+        "bwd_flow_dir" : join(out_dir, training_parameters.BWD_FLOW_FOLDER),
+        "gt_frame_dir" : join(out_dir, training_parameters.GT_FRAMES_FOLDER),
+        "gt_fwd_flow_dir" : join(out_dir, training_parameters.GT_FWD_FLOW_FOLDER),
+        "gt_bwd_flow_dir" : join(out_dir, training_parameters.GT_BWD_FLOW_FOLDER)
     }
 
     for _, value in folders.items():
