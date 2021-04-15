@@ -21,7 +21,7 @@ class DeepFillv1(object):
         model_weight = torch.load(pretrained_model)
         self.deepfill.load_state_dict(model_weight, strict=True)
         self.deepfill.eval()
-        print('Load Deepfill Model from', pretrained_model)
+        #print('Load Deepfill Model from', pretrained_model)
 
     def forward(self, img, mask):
 

@@ -63,7 +63,7 @@ def get_flowNN(args,
     frameIndSetB = range(nFrame - 2, -1, -1)
 
     # 1. Forward Pass (backward flow propagation)
-    print('Forward Pass......')
+    #print('Forward Pass......')
 
     NN_idx = 0 # BN:0
     for indFrame in frameIndSetF:
@@ -218,14 +218,14 @@ def get_flowNN(args,
 
         consistencyMap[:, :, NN_idx, indFrame] = (consistency_uv[:, :, NN_idx, 0, indFrame] ** 2 + consistency_uv[:, :, NN_idx, 1, indFrame] ** 2) ** 0.5
 
-        print("Frame {0:3d}: {1:8d} + {2:8d} = {3:8d}"
-        .format(indFrame,
-                np.sum(HaveFlowNN[:, :, indFrame, NN_idx] == 1),
-                np.sum(HaveFlowNN[:, :, indFrame, NN_idx] == 0),
-                np.sum(HaveFlowNN[:, :, indFrame, NN_idx] != 99999)))
+        #print("Frame {0:3d}: {1:8d} + {2:8d} = {3:8d}"
+        #.format(indFrame,
+        #        np.sum(HaveFlowNN[:, :, indFrame, NN_idx] == 1),
+        #        np.sum(HaveFlowNN[:, :, indFrame, NN_idx] == 0),
+        #        np.sum(HaveFlowNN[:, :, indFrame, NN_idx] != 99999)))
 
     # 2. Backward Pass (forward flow propagation)
-    print('Backward Pass......')
+    #print('Backward Pass......')
 
     NN_idx = 1 # FN:1
     for indFrame in frameIndSetB:
@@ -353,11 +353,11 @@ def get_flowNN(args,
 
         consistencyMap[:, :, NN_idx, indFrame] = (consistency_uv[:, :, NN_idx, 0, indFrame] ** 2 + consistency_uv[:, :, NN_idx, 1, indFrame] ** 2) ** 0.5
 
-        print("Frame {0:3d}: {1:8d} + {2:8d} = {3:8d}"
-        .format(indFrame,
-                np.sum(HaveFlowNN[:, :, indFrame, NN_idx] == 1),
-                np.sum(HaveFlowNN[:, :, indFrame, NN_idx] == 0),
-                np.sum(HaveFlowNN[:, :, indFrame, NN_idx] != 99999)))
+        #print("Frame {0:3d}: {1:8d} + {2:8d} = {3:8d}"
+        #.format(indFrame,
+        #        np.sum(HaveFlowNN[:, :, indFrame, NN_idx] == 1),
+        #        np.sum(HaveFlowNN[:, :, indFrame, NN_idx] == 0),
+        #        np.sum(HaveFlowNN[:, :, indFrame, NN_idx] != 99999)))
 
     # Interpolation
     videoBN = copy.deepcopy(video)
@@ -367,8 +367,8 @@ def get_flowNN(args,
         # Index of missing pixel whose backward flow neighbor is from frame indFrame
         SourceFmInd = np.where(flowNN[:, 2, 0] == indFrame)
 
-        print("{0:8d} pixels are from source Frame {1:3d}"
-                        .format(len(SourceFmInd[0]), indFrame))
+        #print("{0:8d} pixels are from source Frame {1:3d}"
+        #                .format(len(SourceFmInd[0]), indFrame))
         # The location of the missing pixel whose backward flow neighbor is
         # from frame indFrame flowNN[SourceFmInd, 0, 0], flowNN[SourceFmInd, 1, 0]
 
@@ -395,8 +395,8 @@ def get_flowNN(args,
     for indFrame in range(nFrame - 1, -1, -1):
         # Index of missing pixel whose forward flow neighbor is from frame indFrame
         SourceFmInd = np.where(flowNN[:, 2, 1] == indFrame)
-        print("{0:8d} pixels are from source Frame {1:3d}"
-                        .format(len(SourceFmInd[0]), indFrame))
+        #print("{0:8d} pixels are from source Frame {1:3d}"
+        #                .format(len(SourceFmInd[0]), indFrame))
         if len(SourceFmInd[0]) != 0:
 
             videoFN[sub[SourceFmInd[0], :][:, 0],

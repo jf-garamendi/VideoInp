@@ -38,8 +38,8 @@ def minfbbf(flows, device= 'cpu', **kwargs):
     return loss
 
 
-def TV(u, **kwargs):
-    EPS =1e-3
+def TV(u, device='cpu', **kwargs):
+    EPS = torch.tensor(1e-3).to(device)
 
     u_h = u[:, :, 1:, :-1] - u[:, :, :-1, :-1]
     u_w = u[:, :, :-1, 1:] - u[:, :, :-1, :-1]
@@ -49,18 +49,16 @@ def TV(u, **kwargs):
 
 
     # torch manage the division by zero (uses a regularized version of sqrt)
-    tv = torch.sqrt(u2_h + u2_w+ EPS).mean()
+    tv = torch.sqrt(u2_h + u2_w + EPS).mean()
 
     return tv
 
 
 def L1(candidate, ground_truth=None, mask=None, **kwargs):
-    loss = 0
-
     pointwise_error = (torch.abs(ground_truth - candidate)).mean(dim=1)
 
     if mask is not None:
-        loss = pointwise_error[torch.squeeze(mask) == 1].mean()
+        loss = pointwise_error[torch.squeeze(mask) >0].mean()
     else:
         loss = pointwise_error.mean()
 

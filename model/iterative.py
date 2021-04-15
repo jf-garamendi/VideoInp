@@ -45,11 +45,12 @@ class Features2flow(nn.Module):
 class Res_Update(nn.Module):
     def __init__(self, in_channels=32 * 3, update='pow'):
         super(Res_Update, self).__init__()
-        self.pconv1 = PartialConv2d(in_channels, 64, multi_channel=True, return_mask=True, kernel_size=(3, 3), padding=1)
+        self.pconv1 = PartialConv2d(multi_channel='semi', return_mask=True, kernel_size=(3, 3), padding=1,
+                                    in_channels=in_channels, out_channels=64, update=update)
         self.bn1 = nn.BatchNorm2d(in_channels)
         self.bn2 = nn.BatchNorm2d(64)
-        self.pconv2 = PartialConv2d(64, 32, multi_channel=True, return_mask=True, kernel_size=(3, 3), padding=1)
-
+        self.pconv2 = PartialConv2d(multi_channel=False, return_mask=True, kernel_size=(3, 3), padding=1,
+                                    in_channels=64, out_channels=32, update=update)
     def forward(self, x, mask=None):
         x = torch.unsqueeze(x, 0)
         mask = torch.unsqueeze(mask,0 )
