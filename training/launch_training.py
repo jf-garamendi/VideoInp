@@ -362,7 +362,7 @@ def train_update(flow2F, F2flow, update_net, train_loader, test_loader,
                     confidence = initial_confidence
                     gained_confidence = initial_confidence
 
-                    new_flow = flows
+                    new_flow = flows.clone()
                     F = flow2F(flows)
 
                     step = -1
@@ -371,8 +371,8 @@ def train_update(flow2F, F2flow, update_net, train_loader, test_loader,
                         step += 1
                         #print('Test step: ', str(step))
 
-                        current_flow = new_flow
-                        current_F = F
+                        current_flow = new_flow.clone().detach()
+                        current_F = F.clone().detach()
                         new_F, confidence_new = update_step(update_net, current_flow, current_F, confidence)
                         gained_confidence = (confidence_new > confidence) * confidence_new
 
@@ -390,7 +390,7 @@ def train_update(flow2F, F2flow, update_net, train_loader, test_loader,
                                 i += 1
 
                         # mask update before next step
-                        confidence = confidence_new
+                        confidence = confidence_new.clone().detach()
 
                         #Print masks
                         folder = join(verbose_dir, 'masks')
