@@ -358,7 +358,7 @@ def train_update(flow2F, F2flow, update_net, train_loader, test_loader,
 
 
                     # Initial confidence: 1 outside the mask (the hole), 0 inside
-                    initial_confidence = 1 - masks
+                    initial_confidence = 1 - 1. * masks
                     confidence = initial_confidence.clone()
                     gained_confidence = initial_confidence
 
@@ -373,6 +373,7 @@ def train_update(flow2F, F2flow, update_net, train_loader, test_loader,
 
                         current_flow = new_flow.clone().detach()
                         current_F = F.clone().detach()
+                        
                         new_F, confidence_new = update_step(update_net, current_flow, current_F, confidence)
                         gained_confidence = (confidence_new > confidence) * confidence_new
 
