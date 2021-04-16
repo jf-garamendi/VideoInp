@@ -359,7 +359,7 @@ def train_update(flow2F, F2flow, update_net, train_loader, test_loader,
 
                     # Initial confidence: 1 outside the mask (the hole), 0 inside
                     initial_confidence = 1 - masks
-                    confidence = initial_confidence
+                    confidence = initial_confidence.clone()
                     gained_confidence = initial_confidence
 
                     new_flow = flows
@@ -377,7 +377,7 @@ def train_update(flow2F, F2flow, update_net, train_loader, test_loader,
                         gained_confidence = (confidence_new > confidence) * confidence_new
 
                         if gained_confidence.sum() > 0:
-                            F = F * (confidence_new <= confidence) + new_F * (confidence_new > confidence)
+                            F = current_F * (confidence_new <= confidence) + new_F * (confidence_new > confidence)
                             new_flow = F2flow(F)
 
                             i = 0
