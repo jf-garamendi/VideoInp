@@ -319,7 +319,7 @@ def train_update(flow2F, F2flow, update_net, train_loader, test_loader,
 
             # TODO: Moverlo a una función junto a lo mismo que está en el training
             verbose_dir = join(param.VERBOSE_ROOT_DIR, param.TRAINING_NAME)
-            update_net.eval()
+            #update_net.eval()
 
             ## Print Train Losses
             scalars_to_show = train_loss2print + [sum(train_loss2print)]  # + concatenates
@@ -335,7 +335,7 @@ def train_update(flow2F, F2flow, update_net, train_loader, test_loader,
 
             # each component correspond to a video in the dataset
             flows_to_print = []
-            computed_flows_to_print = []
+            computed_flows_to_print = [new_flow]
             computed_frames_to_print = []
 
             #update_net.eval()
