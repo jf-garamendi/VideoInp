@@ -47,8 +47,6 @@ def TV(u, device='cpu', **kwargs):
     u2_h = torch.pow(u_h, 2)
     u2_w = torch.pow(u_w, 2)
 
-
-    # torch manage the division by zero (uses a regularized version of sqrt)
     tv = torch.sqrt(u2_h + u2_w + EPS).mean()
 
     return tv
