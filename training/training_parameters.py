@@ -1,18 +1,19 @@
 # Name of the training
-TRAINING_NAME = "Pierrick_Overfit_014"
+TRAINING_NAME = "Pierrick_Overfit_015"
 
 ###########
 # DATASET
 ###########
 encdDec_random_mask_on_the_fly = False
-update_random_mask_on_the_fly = False
+update_random_mask_on_the_fly = True
 
 # where the training dataset is located
 ENC_DEC_TRAIN_ROOT_DIR = '../datasets/5Tennis_no_mask'
 ENC_DEC_TEST_ROOT_DIR = '../datasets/5Tennis_b'
 
 
-UPDATE_TRAIN_ROOT_DIR = '../datasets/5Tennis_b'
+#UPDATE_TRAIN_ROOT_DIR = '../datasets/5Tennis_b'
+UPDATE_TRAIN_ROOT_DIR = '../datasets/5Tennis_no_mask'
 UPDATE_TEST_ROOT_DIR = '../datasets/5Tennis_b'
 
 #####
@@ -46,7 +47,7 @@ encDec_losses = {
 
 update_losses = {
     'losses_list':  [loss.L1, loss.TV],
-    'weights_list': [1, 10000]
+    'weights_list': [1, 10]
            }
 
 #partial Convolution

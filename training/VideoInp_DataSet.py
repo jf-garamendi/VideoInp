@@ -119,9 +119,9 @@ class VideoInp_DataSet(Dataset):
     #def compute_random_mask(self,  max_mask_W, max_mask_H, W_frame, H_frame ):
     def compute_random_mask(self, H_frame, W_frame, n_squares=1):
         # TODO: Make max_H, and max_W parameters
-        #The test mask has a rtio of H/9, W/13
-        max_H = H_frame/8
-        max_W = W_frame/10
+        #The test mask has a rstio of H/9, W/13 >> H=60, W=80
+        max_H = 60 # H_frame/8
+        max_W = 80 # W_frame/10
 
         mask = np.zeros((H_frame, W_frame)).astype(np.uint8)
 
