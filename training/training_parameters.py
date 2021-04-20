@@ -1,5 +1,5 @@
 # Name of the training
-TRAINING_NAME = "Pierrick_Overfit_015"
+TRAINING_NAME = "Pierrick_Overfit_016"
 
 ###########
 # DATASET
@@ -46,8 +46,8 @@ encDec_losses = {
            }
 
 update_losses = {
-    'losses_list':  [loss.L1, loss.TV],
-    'weights_list': [1, 10]
+    'losses_list':  [loss.L1, loss.TV, loss.minfbbf],
+    'weights_list': [1, 10, 10]
            }
 
 #partial Convolution
