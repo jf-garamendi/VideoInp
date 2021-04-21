@@ -12,8 +12,8 @@ ENC_DEC_TRAIN_ROOT_DIR = '../datasets/5Tennis_no_mask'
 ENC_DEC_TEST_ROOT_DIR = '../datasets/5Tennis_b'
 
 
-#UPDATE_TRAIN_ROOT_DIR = '../datasets/5Tennis_b'
-UPDATE_TRAIN_ROOT_DIR = '../datasets/5Tennis_no_mask'
+UPDATE_TRAIN_ROOT_DIR = '../datasets/5Tennis_b'
+#UPDATE_TRAIN_ROOT_DIR = '../datasets/5Tennis_no_mask'
 UPDATE_TEST_ROOT_DIR = '../datasets/5Tennis_b'
 
 #####
