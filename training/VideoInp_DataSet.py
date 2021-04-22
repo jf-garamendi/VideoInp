@@ -17,7 +17,7 @@ torch.manual_seed(2021)
 from PIL import Image
 
 class VideoInp_DataSet(Dataset):
-    def __init__(self, root_dir, training = True, random_mask_on_the_fly= False, flow_on_the_fly=False):
+    def __init__(self, root_dir, training = True, random_mask_on_the_fly= False, n_masks=1):
         # root_dir:
         # nFrames: NOT IMPLEMENTED
         # random_mask_on_the_fly: If True, then does not read the mask from file and generate a random square mask
@@ -28,8 +28,10 @@ class VideoInp_DataSet(Dataset):
         self.training = training
 
         self.random_mask_on_the_fly = random_mask_on_the_fly
+        self.n_masks = n_masks
 
         self.video_folders = list(sorted(listdir(root_dir)))
+
 
 
     def __len__(self):
@@ -76,7 +78,7 @@ class VideoInp_DataSet(Dataset):
             #Load (or create) mask
             mask = 0
             if self.random_mask_on_the_fly:
-                mask = self.compute_random_mask(fwd_flow.shape[0], fwd_flow.shape[1], n_squares = 1)
+                mask = self.compute_random_mask(fwd_flow.shape[0], fwd_flow.shape[1])
             else:
                 mask_name = join(masks_folder, mask_files[i])
                 mask = read_mask(mask_name)
@@ -117,7 +119,9 @@ class VideoInp_DataSet(Dataset):
         return frames_to_feed, flow_to_feed, mask_to_feed, gt_frames_to_compare, gt_flow_to_compare
 
     #def compute_random_mask(self,  max_mask_W, max_mask_H, W_frame, H_frame ):
-    def compute_random_mask(self, H_frame, W_frame, n_squares=1):
+    def compute_random_mask(self, H_frame, W_frame):
+
+
         # TODO: Make max_H, and max_W parameters
         #The test mask has a rstio of H/9, W/13 >> H=60, W=80
         max_H = 60 # H_frame/8
@@ -125,8 +129,9 @@ class VideoInp_DataSet(Dataset):
 
         mask = np.zeros((H_frame, W_frame)).astype(np.uint8)
 
-        for i in range(n_squares):
-            top_left = (np.random.randint(0,H_frame), np.random.randint(0,W_frame))
+        for i in range(self.n_masks):
+            #top_left = (np.random.randint(0,H_frame), np.random.randint(0,W_frame))
+            top_left = (np.random.randint(100, 400), np.random.randint(300, 600))
             bottom_right = (
                 np.random.randint(top_left[0], min(H_frame, top_left[0]+max_H)),
                 np.random.randint(top_left[1], min(W_frame, top_left[1]+max_W))
