@@ -26,8 +26,8 @@ def main(args):
         out_dir = join(args.out_dir, video_path)
 
         video_path = join(args.in_root_dir, video_path)
-        frame_filename_list = glob(join(video_path, training_parameters.FRAMES_FOLDER, '*.png')) + \
-                              glob(join(video_path, training_parameters.MASKS_FOLDER, '*.jpg'))
+        frame_filename_list = glob(join(video_path, training_parameters.RAW_FRAMES_FOLDER, '*.png')) + \
+                              glob(join(video_path, training_parameters.RAW_FRAMES_FOLDER, '*.jpg'))
 
         frame_filename_list = sorted(frame_filename_list)
 

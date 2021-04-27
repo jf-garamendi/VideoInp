@@ -76,7 +76,9 @@ UPDATE_CHECKPOINT_FILENAME = 'update_checkpoint.tar'
 
 
 # name of the folders inside TRAIN_ROOT_DIR and TEST_ROOT_DIR
+
 FRAMES_FOLDER = "frames"
+RAW_FRAMES_FOLDER = "." # <-- For DAVIS
 MASKS_FOLDER = "masks"
 
 GT_FRAMES_FOLDER = "gt_frames"
