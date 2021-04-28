@@ -28,6 +28,7 @@ from os.path import join
 from torchviz import make_dot
 
 from utils.utils_from_FGVC.from_flow_to_frame import from_flow_to_frame_seamless, from_flow_to_frame
+from tqdm import tqdm
 
 import training.training_parameters as param
 # TODO: MUY IMPORTANTE--> Mover la lógica enc/dec/update a los ficheros del modelo ( model/iterative.py)
@@ -131,8 +132,8 @@ def train_encoder_decoder(encoder, decoder, train_loader, test_loader, optim, lo
                        l.__name__ for l in losses['losses_list']]
     train_loss2print = [0] * len(losses['losses_list'])
 
-    for epoch in range(ini_epoch+1, final_epoch+1):
-        for data in train_loader:
+    for epoch in tqdm(range(ini_epoch+1, final_epoch+1), initial=ini_epoch, total=final_epoch+1, desc='EPOCHS: '):
+        for data in tqdm(train_loader, leave=False, desc='    Videos: '):
             # get the input, data is a tuple composed by
             _, flows, masks, _, gt_flows = data
 
@@ -172,7 +173,8 @@ def train_encoder_decoder(encoder, decoder, train_loader, test_loader, optim, lo
 
         # print loss statistics
         if (epoch % param.SHOWING_N_ITER == 0) and (TB_writer is not None):
-            print(' [Epoch for Encoder-Decoder %5d]' % epoch)
+            #print(' [Epoch for Encoder-Decoder %5d]' % epoch)
+            print('\n')
 
             # TODO: Moverlo a una funcion
             verbose_dir = join(param.VERBOSE_ROOT_DIR, param.TRAINING_NAME)
@@ -232,6 +234,7 @@ def train_encoder_decoder(encoder, decoder, train_loader, test_loader, optim, lo
 
         if (epoch % param.SAVING_N_ITER == 0) and (chk_path is not None):
             # save checkpoint
+
             chk = {
                 'epoch': epoch,
                 'enc_state_dict': encoder.state_dict(),
@@ -240,6 +243,7 @@ def train_encoder_decoder(encoder, decoder, train_loader, test_loader, optim, lo
                 'device': DEVICE
             }
             torch.save(chk, chk_path)
+            print('\n Checkpoints saved')
 
 
 def train_update(flow2F, F2flow, update_net, train_loader, test_loader,
@@ -252,8 +256,8 @@ def train_update(flow2F, F2flow, update_net, train_loader, test_loader,
                        l.__name__ for l in losses['losses_list']]
     train_loss2print = [0] * len(losses['losses_list'])
 
-    for epoch in range(ini_epoch+1, final_epoch+1):
-        for _, iflows, masks, _, gt_flows in train_loader:
+    for epoch in tqdm(range(ini_epoch + 1, final_epoch + 1), initial=ini_epoch, total=final_epoch + 1, desc='EPOCHS: '):
+        for _, iflows, masks, _, gt_flows in tqdm(train_loader, leave=False, desc='    Videos: '):
             # Remove the batch dimension (for pierrick architecture is needed B to be 1)
             B, N, C, H, W = iflows.shape
 
@@ -315,7 +319,8 @@ def train_update(flow2F, F2flow, update_net, train_loader, test_loader,
 
         #Print statistics
         if (epoch % param.SHOWING_N_ITER == 0) and (TB_writer is not None):
-            print(' [Epoch for Update %5d]' % epoch)
+            #print(' [Epoch for Update %5d]' % epoch)
+            print('\n')
 
             # TODO: Moverlo a una función junto a lo mismo que está en el training
             verbose_dir = join(param.VERBOSE_ROOT_DIR, param.TRAINING_NAME)
@@ -432,6 +437,8 @@ def train_update(flow2F, F2flow, update_net, train_loader, test_loader,
             }
             torch.save(chk, chk_path)
 
+            print(' \n Checkpoint Saved')
+
 
 # TODO: Funcion que debe ir a algun fichero de utilidades
 def optimizer_to(optim, device):
@@ -536,21 +543,30 @@ def main():
 
     ## DATAASETS
     #Dataset for Encoder/Decode
-    encDec_train_data = VideoInp_DataSet(param.ENC_DEC_TRAIN_ROOT_DIR, training=True,
+    encDec_train_data = VideoInp_DataSet(param.ENC_DEC_TRAIN_ROOT_DIR,
+                                         training=True,
+                                         number_of_frames = param.ingestion_number_of_frames,
                                          random_mask_on_the_fly=param.encdDec_random_mask_on_the_fly,
                                          n_masks=param.n_masks)
     encDec_train_loader = DataLoader(encDec_train_data, batch_size=1, shuffle=True, drop_last=False)
 
-    encDec_test_data = VideoInp_DataSet(param.ENC_DEC_TEST_ROOT_DIR, training=True, random_mask_on_the_fly=False)
+    encDec_test_data = VideoInp_DataSet(param.ENC_DEC_TEST_ROOT_DIR,
+                                        number_of_frames=param.ingestion_number_of_frames,
+                                        training=True,
+                                        random_mask_on_the_fly=False)
     encDec_test_loader = DataLoader(encDec_test_data, batch_size=1, shuffle=False, drop_last=False)
 
     #Dataset for Update
-    update_train_data = VideoInp_DataSet(param.UPDATE_TRAIN_ROOT_DIR, training=True,
+    update_train_data = VideoInp_DataSet(param.UPDATE_TRAIN_ROOT_DIR,
+                                         training=True,
+                                         number_of_frames=param.ingestion_number_of_frames,
                                          random_mask_on_the_fly=param.update_random_mask_on_the_fly,
                                          n_masks=param.n_masks)
     update_train_loader = DataLoader(update_train_data, batch_size=1, shuffle=True, drop_last=False)
 
-    update_test_data = VideoInp_DataSet(param.UPDATE_TEST_ROOT_DIR, training=True, random_mask_on_the_fly=False)
+    update_test_data = VideoInp_DataSet(param.UPDATE_TEST_ROOT_DIR,
+                                        number_of_frames=param.ingestion_number_of_frames,
+                                        training=True, random_mask_on_the_fly=False)
     update_test_loader = DataLoader(update_test_data, batch_size=1, shuffle=False, drop_last=False)
 
     # Net Models
