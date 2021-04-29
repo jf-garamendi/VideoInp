@@ -21,9 +21,9 @@ UPDATE_TEST_ROOT_DIR = '../../../data/datasets/built/5Tennis_b'
 # Training status visualization
 ####
 # The loss is shown, and the images are saved  every SHOWING_N_ITER
-SHOWING_N_ITER = 5
+SHOWING_N_ITER = 1
 # The weights are saved every SAVING_N_ITER
-SAVING_N_ITER = 5
+SAVING_N_ITER = 1
 
 #######################################################################################################
 # TRAINING PARAMETERS

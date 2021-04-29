@@ -43,8 +43,14 @@ python create_dataset.py --in_root_dir ../video_frames --out_dir ../dataset  --m
 
 ```bash
 cd training
-python launch_training.py
+python launch_training.py CPU
 ```
+or 
+```bash
+cd training
+python launch_training.py CUDA
+```
+
 
 The script `launch_training.py` train first the encoder/decoder and once is converged, the update net is trained.
 The parameters of the training are defined at the beginning of the file

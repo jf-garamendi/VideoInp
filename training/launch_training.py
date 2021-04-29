@@ -33,9 +33,6 @@ from tqdm import tqdm
 import training.training_parameters as param
 # TODO: MUY IMPORTANTE--> Mover la lógica enc/dec/update a los ficheros del modelo ( model/iterative.py)
 
-## Device where running
-DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-print("DEVICE: ", DEVICE)
 
 ################################################################
 #TODO: Auxiliary functions that should go to a file
@@ -648,5 +645,16 @@ def main():
 
     print('Update already trained with ', str(encDec_epoch), ' epochs')
 
+## Device where running
+
 if __name__ == '__main__':
-    main()
+
+    if len(sys.argv) > 1:
+        DEVICE = torch.device("cuda:0" if (torch.cuda.is_available() and sys.argv[1] == "CUDA") else "cpu")
+        print("DEVICE: ", DEVICE)
+        main()
+    else:
+        print ("Please  write CPU or CUDA as first argument to set the device where model will run")
+
+
+
