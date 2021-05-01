@@ -9,19 +9,27 @@ class Flow2features(nn.Module):
     def __init__(self, in_channels=4):
         super(Flow2features, self).__init__()
 
-        self.conv1 = nn.Conv3d(in_channels, 32, 3, 1, 1)
+        self.conv1 = nn.Sequential(
+            nn.Conv3d(in_channels, 32, 3, 1, 1),
+            nn.BatchNorm3d(32),
+            nn.LeakyReLU()
+        )
 
-        self.conv2 =  nn.Conv3d(32, 32, 3, 1, 1)
+        self.conv2 = nn.Sequential(
+            nn.Conv3d(32, 32, 3, 1, 1),
+            nn.BatchNorm3d(32),
+            nn.LeakyReLU()
+        )
 
     def forward(self, x):
         # to CxNframexHxW
         x = torch.unsqueeze(x.permute(1,0,2,3), 0)
 
         out = x
-        out = out + self.conv1(out)
-        out = out + self.conv22(out)
+        out = self.conv1(out)
+        out = out + self.conv2(out)
 
-        out = torch.squeeze(out.permute(1,0,2,3))
+        out = torch.squeeze(out).permute(1,0,2,3)
 
         return out
 
@@ -32,11 +40,11 @@ class Features2flow(nn.Module):
         self.in_c = nn.Conv3d(features_channels, 4, kernel_size=1)
 
     def forward(self, x):
-        x = torch.unsqueeze(x.permute(1,0,2,3))
+        x = torch.unsqueeze(x.permute(1,0,2,3), 0)
 
         out = self.in_c(x)
 
-        out = torch.squeeze(out.permute(1, 0, 2, 3))
+        out = torch.squeeze(out).permute(1, 0, 2, 3)
         return out
 
 

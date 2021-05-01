@@ -207,7 +207,7 @@ def train_encoder_decoder(encoder, decoder, train_loader, test_loader, optim, lo
 
                     computed_flows = decoder(encoder(flows))
 
-                    flows_to_print.append(gt_flows)
+                    flows_to_print.append(flows)
                     computed_flows_to_print.append(computed_flows)
 
                     i = 0

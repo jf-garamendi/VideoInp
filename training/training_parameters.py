@@ -1,6 +1,6 @@
 # Name of the training
 #TRAINING_NAME = "Pierrick_Complete_001"
-TRAINING_NAME = "conv3D_debug"
+TRAINING_NAME = "EncDec_conv3D_001"
 
 ###########
 # DATASET
@@ -30,7 +30,7 @@ SAVING_N_ITER = 1
 #######################################################################################################
 # TRAINING PARAMETERS
 #######################################################################################################
-encDec_n_epochs = 1100
+encDec_n_epochs = 30000
 update_n_epochs = 30000
 
 max_num_steps = 20
