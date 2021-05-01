@@ -1,5 +1,6 @@
 # Name of the training
-TRAINING_NAME = "Pierrick_Complete_001"
+#TRAINING_NAME = "Pierrick_Complete_001"
+TRAINING_NAME = "conv3D_debug"
 
 ###########
 # DATASET
@@ -9,12 +10,13 @@ update_random_mask_on_the_fly = True
 n_masks = 5
 
 # where the training dataset is located
-ENC_DEC_TRAIN_ROOT_DIR = '../../../data/datasets/built/davis_no_mask'
+#ENC_DEC_TRAIN_ROOT_DIR = '../../../data/datasets/built/davis_no_mask'
+ENC_DEC_TRAIN_ROOT_DIR = '../../../data/datasets/built/5Tennis_b'
 ENC_DEC_TEST_ROOT_DIR = '../../../data/datasets/built/5Tennis_b'
 
 
-#UPDATE_TRAIN_ROOT_DIR = '../../../data/datasets/built/5Tennis_b'
-UPDATE_TRAIN_ROOT_DIR = '../../../data/datasets/built/davis_no_mask'
+UPDATE_TRAIN_ROOT_DIR = '../../../data/datasets/built/5Tennis_b'
+#UPDATE_TRAIN_ROOT_DIR = '../../../data/datasets/built/davis_no_mask'
 UPDATE_TEST_ROOT_DIR = '../../../data/datasets/built/5Tennis_b'
 
 #####
