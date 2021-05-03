@@ -15,7 +15,7 @@ ENC_DEC_TEST_ROOT_DIR = '../../../data/datasets/built/5Tennis_b'
 
 #UPDATE_TRAIN_ROOT_DIR = '../../../data/datasets/built/5Tennis_b'
 UPDATE_TRAIN_ROOT_DIR = '../../../data/datasets/built/davis_no_mask'
-UPDATE_TEST_ROOT_DIR = '../../../data/datasets/built/5Tennis_b'
+UPDATE_TEST_ROOT_DIR = '../../../data/datasets/built/5Tennis_c'
 
 #####
 # Training status visualization
