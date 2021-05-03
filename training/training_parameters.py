@@ -1,6 +1,5 @@
 # Name of the training
-#TRAINING_NAME = "Pierrick_Complete_001"
-TRAINING_NAME = "EncDec_conv3D_001"
+TRAINING_NAME = "Mix_001"
 
 ###########
 # DATASET
