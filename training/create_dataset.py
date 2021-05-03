@@ -21,7 +21,7 @@ def main(args):
     #Create root desteny folder
     create_dir(args.out_dir)
 
-   # Prcess frames
+   # Process frames
     for video_path in video_folders:
         out_dir = join(args.out_dir, video_path)
 
@@ -42,9 +42,12 @@ def main(args):
             gt_frames.append(f)
 
         #create the mask
-        masked_frames = []
-        #if args.masking_mode == "template":
-        masks, masked_frames = create_template_mask_data(gt_frames, args.template_mask)
+        masks = None
+        masked_frames = None
+        if args.masking_mode == "same_template":
+            masks, masked_frames = create_template_mask_data(gt_frames, args.template_mask)
+        elif args.masking_mode =="template_for_each_frame":
+            masks, masked_frames = create_template_mask_data(gt_frames, join(video_path, training_parameters.RAW_MASKS_FOLDER))
 
         # Compute optical flow, if needed
         if args.compute_RAFT_flow:
@@ -124,21 +127,39 @@ def save_data(masks, masked_frames, fwd_flow, bwd_flow, gt_frames, gt_fwd_flow, 
     # save_flow_and_img(gt_bwd_flow, folder_flow='./borrar_bwd_img', folder_img='./borrar_bwd_png')
 
 def create_template_mask_data(frame_list, path_to_mask):
+    # path_to_mask can be a file or a folder. If it a file, the mask will be the same for all frames
+    # If it is a folder, then read the files and make corresponede one-one to the frames
     H, W, _ = frame_list[0].shape
 
-    pil_mask = Image.open(path_to_mask).convert('L')
+    masks = []
+    if os.path.isfile(path_to_mask):
+        pil_mask = Image.open(path_to_mask).convert('L')
 
-    mask = pil_mask.resize((W,H))
-    mask = np.array(mask).astype(np.uint8)
-    mask = (mask > 0).astype(np.uint8)
+        mask = pil_mask.resize((W,H))
+        mask = np.array(mask).astype(np.uint8)
+        mask = (mask > 0).astype(np.uint8)
+
+        masks = [mask] * len(frame_list)
+    elif os.path.isdir(path_to_mask):
+        mask_filename_list = glob(join(path_to_mask, '*.png')) + \
+                              glob(join(path_to_mask, '*.jpg'))
+        mask_filename_list = sorted(mask_filename_list)
+
+        for filename in mask_filename_list:
+            pil_mask = Image.open(filename).convert('L')
+            # scale
+            mask = pil_mask.resize((W, H))
+            mask = np.array(mask).astype(np.uint8)
+            mask = (mask > 0).astype(np.uint8)
+
+            masks.append(mask)
+
 
     masked_frames = []
-    masks = []
-    for frame in frame_list:
-        masked_f = frame * np.expand_dims(1-mask, -1)
-
+    for (i, frame) in enumerate(frame_list):
+        masked_f = frame * np.expand_dims(1-masks[i], -1)
         masked_frames.append(masked_f)
-        masks.append(mask)
+
 
     return masks, masked_frames
 
