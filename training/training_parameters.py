@@ -1,35 +1,36 @@
 # Name of the training
-TRAINING_NAME = "Mix_001"
+TRAINING_NAME = "Mix_002"
 
 ###########
 # DATASET
 ###########
 encdDec_random_mask_on_the_fly = False
-update_random_mask_on_the_fly = False
+update_random_mask_on_the_fly = True
 n_masks = 5
 
 # where the training dataset is located
 #ENC_DEC_TRAIN_ROOT_DIR = '../../../data/datasets/built/davis_no_mask'
-ENC_DEC_TRAIN_ROOT_DIR = '../../../data/datasets/built/5Tennis_b'
-ENC_DEC_TEST_ROOT_DIR = '../../../data/datasets/built/5Tennis_b'
+ENC_DEC_TRAIN_ROOT_DIR = '../../../data/datasets/built/5Tennis_no_mask'
+ENC_DEC_TEST_ROOT_DIR = '../../../data/datasets/built/5Tennis_c'
 
 
-UPDATE_TRAIN_ROOT_DIR = '../../../data/datasets/built/5Tennis_b'
+#UPDATE_TRAIN_ROOT_DIR = '../../../data/datasets/built/5Tennis_b'
+UPDATE_TRAIN_ROOT_DIR = '../../../data/datasets/built/5Tennis_no_mask'
 #UPDATE_TRAIN_ROOT_DIR = '../../../data/datasets/built/davis_no_mask'
-UPDATE_TEST_ROOT_DIR = '../../../data/datasets/built/5Tennis_b'
+UPDATE_TEST_ROOT_DIR = '../../../data/datasets/built/5Tennis_c'
 
 #####
 # Training status visualization
 ####
 # The loss is shown, and the images are saved  every SHOWING_N_ITER
-SHOWING_N_ITER = 1
+SHOWING_N_ITER = 10
 # The weights are saved every SAVING_N_ITER
-SAVING_N_ITER = 1
+SAVING_N_ITER = 10
 
 #######################################################################################################
 # TRAINING PARAMETERS
 #######################################################################################################
-encDec_n_epochs = 30000
+encDec_n_epochs = 10000
 update_n_epochs = 30000
 
 max_num_steps = 20
