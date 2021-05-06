@@ -5,7 +5,7 @@ TRAINING_NAME = "Mix_001"
 # DATASET
 ###########
 encdDec_random_mask_on_the_fly = False
-update_random_mask_on_the_fly = True
+update_random_mask_on_the_fly = False
 n_masks = 5
 
 # where the training dataset is located
