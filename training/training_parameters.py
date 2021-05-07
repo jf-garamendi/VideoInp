@@ -1,3 +1,7 @@
+#TODO: This file should be a dictionary. Being a dictionary I can seve all parameters in the chekcpoint. This is useful
+# when we load the checkpoints and videos in streamlit
+
+
 # Name of the training
 TRAINING_NAME = "Mix_002"
 
@@ -10,14 +14,9 @@ n_masks = 5
 
 # where the training dataset is located
 #ENC_DEC_TRAIN_ROOT_DIR = '../../../data/datasets/built/davis_no_mask'
-ENC_DEC_TRAIN_ROOT_DIR = '../../../data/datasets/built/5Tennis_no_mask'
-ENC_DEC_TEST_ROOT_DIR = '../../../data/datasets/built/5Tennis_c'
-
-
-#UPDATE_TRAIN_ROOT_DIR = '../../../data/datasets/built/5Tennis_b'
-UPDATE_TRAIN_ROOT_DIR = '../../../data/datasets/built/5Tennis_no_mask'
-#UPDATE_TRAIN_ROOT_DIR = '../../../data/datasets/built/davis_no_mask'
-UPDATE_TEST_ROOT_DIR = '../../../data/datasets/built/5Tennis_c'
+TRAIN_DATA_ROOT_DIR = '../../../data/datasets/built/5Tennis_no_mask'
+VAL_DATA_ROOT_DIR = '../../../data/datasets/built/5Tennis_c'
+TEST_DATA_ROOT_DIR = ""
 
 #####
 # Training status visualization

@@ -540,28 +540,28 @@ def main():
 
     ## DATAASETS
     #Dataset for Encoder/Decode
-    encDec_train_data = VideoInp_DataSet(param.ENC_DEC_TRAIN_ROOT_DIR,
+    encDec_train_data = VideoInp_DataSet(param.TRAIN_DATA_ROOT_DIR,
                                          training=True,
                                          number_of_frames = param.ingestion_number_of_frames,
                                          random_mask_on_the_fly=param.encdDec_random_mask_on_the_fly,
                                          n_masks=param.n_masks)
     encDec_train_loader = DataLoader(encDec_train_data, batch_size=1, shuffle=True, drop_last=False)
 
-    encDec_test_data = VideoInp_DataSet(param.ENC_DEC_TEST_ROOT_DIR,
+    encDec_test_data = VideoInp_DataSet(param.VAL_DATA_ROOT_DIR,
                                         number_of_frames=param.ingestion_number_of_frames,
                                         training=True,
                                         random_mask_on_the_fly=False)
     encDec_test_loader = DataLoader(encDec_test_data, batch_size=1, shuffle=False, drop_last=False)
 
     #Dataset for Update
-    update_train_data = VideoInp_DataSet(param.UPDATE_TRAIN_ROOT_DIR,
+    update_train_data = VideoInp_DataSet(param.TRAIN_DATA_ROOT_DIR,
                                          training=True,
                                          number_of_frames=param.ingestion_number_of_frames,
                                          random_mask_on_the_fly=param.update_random_mask_on_the_fly,
                                          n_masks=param.n_masks)
     update_train_loader = DataLoader(update_train_data, batch_size=1, shuffle=True, drop_last=False)
 
-    update_test_data = VideoInp_DataSet(param.UPDATE_TEST_ROOT_DIR,
+    update_test_data = VideoInp_DataSet(param.VAL_DATA_ROOT_DIR,
                                         number_of_frames=param.ingestion_number_of_frames,
                                         training=True, random_mask_on_the_fly=False)
     update_test_loader = DataLoader(update_test_data, batch_size=1, shuffle=False, drop_last=False)
