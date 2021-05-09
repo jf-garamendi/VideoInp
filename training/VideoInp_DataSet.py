@@ -6,7 +6,8 @@ from utils.data_io import read_flow
 import numpy as np
 from utils.frame_utils import  apply_mask
 from utils.data_io import read_mask, read_frame
-import training_parameters
+import training.training_parameters as training_parameters
+
 import random
 import scipy.ndimage
 import cv2
@@ -46,6 +47,7 @@ class VideoInp_DataSet(Dataset):
 
         video_folder = join(self.root_dir, self.video_folders[idx])
 
+        # TODO: estos parametros como parametros en el init de la funcion
         masks_folder = join(video_folder, training_parameters.MASKS_FOLDER)
         fwd_flow_folder = join(video_folder, training_parameters.FWD_FLOW_FOLDER)
         bwd_flow_folder = join(video_folder, training_parameters.BWD_FLOW_FOLDER)
@@ -63,7 +65,7 @@ class VideoInp_DataSet(Dataset):
 
         #feed with the especified number of frames
         # random the last one and take the previous self.number_of_files
-        if len(frame_files) > self.number_of_frames:
+        if (len(frame_files) > self.number_of_frames) and (self.number_of_frames != -1):
             lower_bound = random.randint(0, len(frame_files) - self.number_of_frames)
             upper_bound = lower_bound + self.number_of_frames
 

@@ -479,6 +479,7 @@ def warp(features, field, device):
     return warped_features
 
 def update_step(update, flow, F, confidence):
+    DEVICE='cpu'
 
     N, C, H, W = flow.shape
 
