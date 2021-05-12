@@ -12,7 +12,7 @@ from os.path import join
 from training.VideoInp_DataSet import VideoInp_DataSet
 from torch.utils.data import DataLoader
 from training.launch_training import update_step
-
+from utils.data_io import read_frame
 
 # TODO: Remove this, the parameters should be saved in the checkpoint and readed from it.
 import training.training_parameters as training_param
@@ -29,91 +29,83 @@ def main():
     # Render the readme as markdown
     # readme_text = st.markdown(read_markdown_file("../README.md"))
 
+
+    # From the available trainings, choose one
     st.sidebar.title('Choose Training')
-    _, selected_train = choose_folder_inside_folder(folder = training_param.CHECKPOINT_ROOT_DIR, title ="Trainings list:")
+    verbose_root_dir = training_param.VERBOSE_ROOT_DIR
+    _, selected_train = choose_folder_inside_folder(folder = verbose_root_dir, title ="Trainings list:")
+
+    which_part = st.sidebar.radio("What model component do you want to see?", ("Encoder-Decoder", "Update"), index=1)
+    fwd_or_bck = st.sidebar.radio("What flow do you want to see?", ("Forward", "Backward"), index=0)
+
+    #Read each folder
+    folder_train = join(verbose_root_dir, selected_train)
+    folders = sorted(listdir(folder_train))
+    in_flow_names = []
+    in_flow_imgs = []
+    txt_for_in_flow =""
+    txt_for_comp_flow = ""
+    comp_flow_imgs = []
+    gt_flow_imgs = []
+    for folder in folders:
+        #st.text(folder)
+        if ("encDec" in folder) and (which_part == "Encoder-Decoder"):
+            if ("input" in folder):
+                #st.header("Input Optical Flow")
+                    if ("forward" in folder) and (fwd_or_bck == "Forward"):
+                        in_flow_names, in_flow_imgs = read_flows_from_folder(join(folder_train, folder))
+                        txt_for_in_flow = "Input Forward Flow"
+                    elif ("backward" in folder) and (fwd_or_bck == "Backward"):
+                        in_flow_names, in_flow_imgs = read_flows_from_folder(join(folder_train, folder))
+                        txt_for_in_flow = "Input BackwardFlow"
+
+            if ('computed' in folder):
+                if ("forward" in folder) and (fwd_or_bck == "Forward"):
+                    comp_flow_names, comp_flow_imgs = read_flows_from_folder(join(folder_train, folder))
+                elif ("backward" in folder) and (fwd_or_bck == "Backward"):
+                    comp_flow_names, comp_flow_imgs = read_flows_from_folder(join(folder_train, folder))
+
+            if ('GT' in folder):
+                if ("forward" in folder) and (fwd_or_bck == "Forward"):
+                    gt_flow_names, gt_flow_imgs = read_flows_from_folder(join(folder_train, folder))
+                elif ("backward" in folder) and (fwd_or_bck == "Backward"):
+                    gt_flow_names, gt_flow_imgs = read_flows_from_folder(join(folder_train, folder))
 
 
-    # Select frame number
-    st.sidebar.title("Frame Number")
-    frame_idx, frame_name = frame_selector_ui(join(data_folder, selected_video))
-
-    st.sidebar.text(frame_name)
-
-    # show the frame
-    frame = frames[frame_idx, :, :, :].permute(1,2,0)
-    img_frame = (255 * np.squeeze(frame.numpy())).astype(np.uint8)
-
-    st.image(img_frame, use_column_width=True)
-
-    # show the flows
-    flow_frame = flows[frame_idx, 0:2, :, :].permute((1, 2, 0))
-    flow_frame = np.squeeze(flow_frame.numpy())
-
-    flow_img = flow_to_image(flow_frame)
-
-    st.image(flow_img, use_column_width=True)
-
-    # Show the masks
-    mask_frame = 255* np.squeeze(masks[frame_idx,:,:].numpy()).astype((np.uint8))
-    st.image(mask_frame)
+        if ("update" in folder) and (which_part == "Update"):
+            if ("input" in folder):
+                #st.header("Input Optical Flow")
+                    if ("forward" in folder) and (fwd_or_bck == "Forward"):
+                        in_flow_names, in_flow_imgs = read_flows_from_folder(join(folder_train, folder))
+                        txt_for_in_flow = "Input Forward Flow"
+                    elif ("backward" in folder) and (fwd_or_bck == "Backward"):
+                        in_flow_names, in_flow_imgs = read_flows_from_folder(join(folder_train, folder))
 
 
-    # TODO: Inpaint
-    N, C, H, W = flows.shape
-    B=1
+            if ('computed' in folder):
+                if ("forward" in folder) and (fwd_or_bck == "Forward"):
+                    comp_flow_names, comp_flow_imgs = read_flows_from_folder(join(folder_train, folder))
+                elif ("backward" in folder) and (fwd_or_bck == "Backward"):
+                    comp_flow_names, comp_flow_imgs = read_flows_from_folder(join(folder_train, folder))
+
+            if ('GT' in folder):
+                if ("forward" in folder) and (fwd_or_bck == "Forward"):
+                    gt_flow_names, gt_flow_imgs = read_flows_from_folder(join(folder_train, folder))
+                elif ("backward" in folder) and (fwd_or_bck == "Backward"):
+                    gt_flow_names, gt_flow_imgs = read_flows_from_folder(join(folder_train, folder))
 
 
-    frames = frames.view(B * N, 3, H, W)
-    flows = flows.view(B * N, C, H, W)
-    # masks: 1 inside the hole
-    masks = masks.view(B * N, 1, H, W)
-    gt_frames = gt_frames.view(B * N, 3, H, W)
-    gt_flows = gt_flows.view(B * N, C, H, W)
+    st.title(which_part)
+    selected_frame_index = st.sidebar.slider("Choose a frame (index)", 0, len(in_flow_imgs) - 1, 0)
+    #alpha = st.sidebar.slider("Choose an alpha", 0, 100, 0)/100
 
-    # place data on device
-    flows = flows.to('cpu')
-    masks = masks.to('cpu')
-    gt_flows = gt_flows.to('cpu')
+    #for imgs_to_show in zip(in_flow_imgs, comp_flow_imgs):
+    #    st.image(list(imgs_to_show), ["Input", "Computed"])
+    a = np.abs(gt_flow_imgs[selected_frame_index] - comp_flow_imgs[selected_frame_index])
+    #b = alpha*gt_flow_imgs[selected_frame_index] + (1-alpha)*comp_flow_imgs[selected_frame_index]
+    st.image([in_flow_imgs[selected_frame_index], comp_flow_imgs[selected_frame_index], gt_flow_imgs[selected_frame_index], a],
+             ["Input", "Computed", "Ground Truth", "Error"])
 
-    # Initial confidence: 1 outside the mask (the hole), 0 inside
-    initial_confidence = 1 - 1. * masks
-    confidence = initial_confidence.clone()
-    gained_confidence = initial_confidence
-
-    new_flow = flows.clone()
-    F = flow2F(flows)
-
-    step = -1
-
-    while (gained_confidence.sum() > 0) and (step <= training_param.max_num_steps):
-        step += 1
-        # print('Test step: ', str(step))
-
-        current_flow = new_flow.clone().detach()
-        current_F = F.clone().detach()
-
-        new_F, confidence_new = update_step(update_net, current_flow, current_F, confidence)
-        gained_confidence = (confidence_new > confidence) * confidence_new
-
-        if gained_confidence.sum() > 0:
-            F = current_F * (confidence_new <= confidence) + new_F * (confidence_new > confidence)
-            new_flow = F2flow(F)
-
-
-        # mask update before next step
-        confidence = confidence_new.clone().detach()
-
-
-    # TODO: show results
-    flow_frame = new_flow[frame_idx, 0:2, :, :].permute((1, 2, 0))
-    flow_frame = np.squeeze(flow_frame.numpy())
-
-    flow_img = flow_to_image(flow_frame)
-
-    st.image(flow_img, use_column_width=True)
-
-
-    # TODO: show diference between results and GT
 
 
 
@@ -140,9 +132,19 @@ def frame_selector_ui(video_folder):
 
     return selected_item_index, selected_item
 
-
 def read_markdown_file(markdown_file):
     return Path(markdown_file).read_text()
+
+def read_flows_from_folder(folder):
+    folder = join(folder, "flow_png")
+
+    files = sorted(listdir(folder))
+
+    flows = []
+    for file in files:
+        flows.append(read_frame(join(folder, file)))
+
+    return files, flows
 
 if __name__ == "__main__":
     main()

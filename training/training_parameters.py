@@ -10,7 +10,7 @@ n_masks = 5
 
 # where the training dataset is located
 #ENC_DEC_TRAIN_ROOT_DIR = '../../../data/datasets/built/davis_no_mask'
-TRAIN_DATA_ROOT_DIR = '../../../data/datasets/built/5Tennis_no_mask'
+TRAIN_DATA_ROOT_DIR = '../../../data/datasets/built/davis_no_mask'
 VAL_DATA_ROOT_DIR = '../../../data/datasets/built/5Tennis_c'
 TEST_DATA_ROOT_DIR = ""
 
