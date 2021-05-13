@@ -12,7 +12,8 @@ from os.path import join
 from training.VideoInp_DataSet import VideoInp_DataSet
 from torch.utils.data import DataLoader
 from training.launch_training import update_step
-from utils.data_io import read_frame
+from utils.data_io import read_frame, read_flow
+from utils.flow_viz import flow_to_image
 
 # TODO: Remove this, the parameters should be saved in the checkpoint and readed from it.
 import training.training_parameters as training_param
@@ -72,7 +73,7 @@ def main():
                     gt_flow_names, gt_flow_imgs = read_flows_from_folder(join(folder_train, folder))
 
 
-        if ("update" in folder) and (which_part == "Update"):
+        if ("pdate" in folder) and (which_part == "Update"):
             if ("input" in folder):
                 #st.header("Input Optical Flow")
                     if ("forward" in folder) and (fwd_or_bck == "Forward"):
@@ -96,15 +97,23 @@ def main():
 
 
     st.title(which_part)
-    selected_frame_index = st.sidebar.slider("Choose a frame (index)", 0, len(in_flow_imgs) - 1, 0)
-    #alpha = st.sidebar.slider("Choose an alpha", 0, 100, 0)/100
 
-    #for imgs_to_show in zip(in_flow_imgs, comp_flow_imgs):
-    #    st.image(list(imgs_to_show), ["Input", "Computed"])
-    a = np.abs(gt_flow_imgs[selected_frame_index] - comp_flow_imgs[selected_frame_index])
-    #b = alpha*gt_flow_imgs[selected_frame_index] + (1-alpha)*comp_flow_imgs[selected_frame_index]
-    st.image([in_flow_imgs[selected_frame_index], comp_flow_imgs[selected_frame_index], gt_flow_imgs[selected_frame_index], a],
-             ["Input", "Computed", "Ground Truth", "Error"])
+    if len(in_flow_imgs)>0:
+        selected_frame_index = st.sidebar.slider("Choose a frame (index)", 0, len(in_flow_imgs) - 1, 1)
+
+        if len(gt_flow_imgs)>0:
+            img_flow_diff = flow_to_image(gt_flow_imgs[selected_frame_index] - comp_flow_imgs[selected_frame_index])
+        else:
+            img_flow_diff = flow_to_image(0*comp_flow_imgs[selected_frame_index])
+
+        img_in_flow = flow_to_image(in_flow_imgs[selected_frame_index])
+        img_comp_flow = flow_to_image(comp_flow_imgs[selected_frame_index])
+        img_gt_flow = flow_to_image(gt_flow_imgs[selected_frame_index])
+
+        st.image([img_in_flow, img_gt_flow, img_comp_flow , img_flow_diff], ["Input", "Ground Truth","Computed",  "Error"])
+
+    else:
+        st.header("There are no data " )
 
 
 
@@ -136,6 +145,7 @@ def read_markdown_file(markdown_file):
     return Path(markdown_file).read_text()
 
 def read_flows_from_folder(folder):
+    '''
     folder = join(folder, "flow_png")
 
     files = sorted(listdir(folder))
@@ -145,6 +155,16 @@ def read_flows_from_folder(folder):
         flows.append(read_frame(join(folder, file)))
 
     return files, flows
+    '''
 
+    folder = join(folder, "flow_flo")
+
+    files = sorted(listdir(folder))
+
+    flows = []
+    for file in files:
+        flows.append(read_flow(join(folder, file)))
+
+    return files, flows
 if __name__ == "__main__":
     main()
