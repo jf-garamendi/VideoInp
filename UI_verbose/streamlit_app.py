@@ -32,90 +32,53 @@ def main():
 
 
     # From the available trainings, choose one
-    st.sidebar.title('Choose Training')
+    st.sidebar.title('Choose Training A')
     verbose_root_dir = training_param.VERBOSE_ROOT_DIR
-    _, selected_train = choose_folder_inside_folder(folder = verbose_root_dir, title ="Trainings list:")
+    _, selected_train_A = choose_folder_inside_folder(folder = verbose_root_dir, title ="Trainings list A:")
+
+    st.sidebar.title('Choose Training B (to compare)')
+    verbose_root_dir = training_param.VERBOSE_ROOT_DIR
+    _, selected_train_B = choose_folder_inside_folder(folder=verbose_root_dir, title="Trainings list B:")
 
     which_part = st.sidebar.radio("What model component do you want to see?", ("Encoder-Decoder", "Update"), index=1)
     fwd_or_bck = st.sidebar.radio("What flow do you want to see?", ("Forward", "Backward"), index=0)
+    A_or_B = st.sidebar.radio("Which model do you want to see?", (selected_train_A, selected_train_B), index=0)
+    overlay_GT_on_comp = st.sidebar.checkbox("Replace computed OF by the GT", value=False)
 
     #Read each folder
-    folder_train = join(verbose_root_dir, selected_train)
-    folders = sorted(listdir(folder_train))
-    in_flow_names = []
-    in_flow_imgs = []
-    txt_for_in_flow =""
-    txt_for_comp_flow = ""
-    comp_flow_imgs = []
-    gt_flow_imgs = []
-    for folder in folders:
-        #st.text(folder)
-        if ("encDec" in folder) and (which_part == "Encoder-Decoder"):
-            if ("input" in folder):
-                #st.header("Input Optical Flow")
-                    if ("forward" in folder) and (fwd_or_bck == "Forward"):
-                        in_flow_names, in_flow_imgs = read_flows_from_folder(join(folder_train, folder))
-                        txt_for_in_flow = "Input Forward Flow"
-                    elif ("backward" in folder) and (fwd_or_bck == "Backward"):
-                        in_flow_names, in_flow_imgs = read_flows_from_folder(join(folder_train, folder))
-                        txt_for_in_flow = "Input BackwardFlow"
-
-            if ('computed' in folder):
-                if ("forward" in folder) and (fwd_or_bck == "Forward"):
-                    comp_flow_names, comp_flow_imgs = read_flows_from_folder(join(folder_train, folder))
-                elif ("backward" in folder) and (fwd_or_bck == "Backward"):
-                    comp_flow_names, comp_flow_imgs = read_flows_from_folder(join(folder_train, folder))
-
-            if ('GT' in folder):
-                if ("forward" in folder) and (fwd_or_bck == "Forward"):
-                    gt_flow_names, gt_flow_imgs = read_flows_from_folder(join(folder_train, folder))
-                elif ("backward" in folder) and (fwd_or_bck == "Backward"):
-                    gt_flow_names, gt_flow_imgs = read_flows_from_folder(join(folder_train, folder))
+    folder_train_A = join(verbose_root_dir, selected_train_A)
+    folder_train_B = join(verbose_root_dir, selected_train_B)
 
 
-        if ("pdate" in folder) and (which_part == "Update"):
-            if ("input" in folder):
-                #st.header("Input Optical Flow")
-                    if ("forward" in folder) and (fwd_or_bck == "Forward"):
-                        in_flow_names, in_flow_imgs = read_flows_from_folder(join(folder_train, folder))
-                        txt_for_in_flow = "Input Forward Flow"
-                    elif ("backward" in folder) and (fwd_or_bck == "Backward"):
-                        in_flow_names, in_flow_imgs = read_flows_from_folder(join(folder_train, folder))
+    in_flow_A, gt_flow_A, comp_flow_A  = read_flows_from_foldertrain(folder_train_A, which_part, fwd_or_bck)
+    in_flow_B, gt_flow_B, comp_flow_B = read_flows_from_foldertrain(folder_train_B, which_part, fwd_or_bck)
+
+    if A_or_B == selected_train_A:
+        in_flow, gt_flow, comp_flow = in_flow_A, gt_flow_A, comp_flow_A
+    else:
+        in_flow, gt_flow, comp_flow = in_flow_B, gt_flow_B, comp_flow_B
 
 
-            if ('computed' in folder):
-                if ("forward" in folder) and (fwd_or_bck == "Forward"):
-                    comp_flow_names, comp_flow_imgs = read_flows_from_folder(join(folder_train, folder))
-                elif ("backward" in folder) and (fwd_or_bck == "Backward"):
-                    comp_flow_names, comp_flow_imgs = read_flows_from_folder(join(folder_train, folder))
-
-            if ('GT' in folder):
-                if ("forward" in folder) and (fwd_or_bck == "Forward"):
-                    gt_flow_names, gt_flow_imgs = read_flows_from_folder(join(folder_train, folder))
-                elif ("backward" in folder) and (fwd_or_bck == "Backward"):
-                    gt_flow_names, gt_flow_imgs = read_flows_from_folder(join(folder_train, folder))
+    if len(in_flow)>0:
+        selected_frame_index = st.sidebar.slider("Choose a frame (index)", 0, len(in_flow) - 1, 1)
 
 
-    st.title(which_part)
-
-    if len(in_flow_imgs)>0:
-        selected_frame_index = st.sidebar.slider("Choose a frame (index)", 0, len(in_flow_imgs) - 1, 1)
-
-        if len(gt_flow_imgs)>0:
-            img_flow_diff = flow_to_image(gt_flow_imgs[selected_frame_index] - comp_flow_imgs[selected_frame_index])
+        if len(gt_flow)>0:
+            img_flow_diff = flow_to_image(gt_flow[selected_frame_index] - comp_flow[selected_frame_index])
         else:
-            img_flow_diff = flow_to_image(0*comp_flow_imgs[selected_frame_index])
+            img_flow_diff = flow_to_image(0*comp_flow[selected_frame_index])
 
-        img_in_flow = flow_to_image(in_flow_imgs[selected_frame_index])
-        img_comp_flow = flow_to_image(comp_flow_imgs[selected_frame_index])
-        img_gt_flow = flow_to_image(gt_flow_imgs[selected_frame_index])
+        img_in_flow = flow_to_image(in_flow[selected_frame_index])
+        img_gt_flow = flow_to_image(gt_flow[selected_frame_index])
+        if overlay_GT_on_comp:
+            img_comp_flow = img_gt_flow
+        else:
+            img_comp_flow = flow_to_image(comp_flow[selected_frame_index])
 
         st.image([img_in_flow, img_gt_flow, img_comp_flow , img_flow_diff], ["Input", "Ground Truth","Computed",  "Error"])
 
     else:
         st.header("There are no data " )
-
-
 
 
 def choose_folder_inside_folder(title ="", folder = None):
@@ -144,19 +107,8 @@ def frame_selector_ui(video_folder):
 def read_markdown_file(markdown_file):
     return Path(markdown_file).read_text()
 
+@st.cache(suppress_st_warning=True)
 def read_flows_from_folder(folder):
-    '''
-    folder = join(folder, "flow_png")
-
-    files = sorted(listdir(folder))
-
-    flows = []
-    for file in files:
-        flows.append(read_frame(join(folder, file)))
-
-    return files, flows
-    '''
-
     folder = join(folder, "flow_flo")
 
     files = sorted(listdir(folder))
@@ -166,5 +118,59 @@ def read_flows_from_folder(folder):
         flows.append(read_flow(join(folder, file)))
 
     return files, flows
+
+@st.cache(suppress_st_warning=True)
+def read_flows_from_foldertrain(folder_train, which_model_part, which_flow):
+    #Read each folder
+    folders = sorted(listdir(folder_train))
+    in_flow = []
+    comp_flow = []
+    gt_flow = []
+    for folder in folders:
+        #st.text(folder)
+        if ("encDec" in folder) and (which_model_part == "Encoder-Decoder"):
+            if ("input" in folder):
+                    if ("forward" in folder) and (which_flow == "Forward"):
+                        _, in_flow = read_flows_from_folder(join(folder_train, folder))
+                    elif ("backward" in folder) and (which_flow == "Backward"):
+                        _, in_flow = read_flows_from_folder(join(folder_train, folder))
+
+
+            if ('computed' in folder):
+                if ("forward" in folder) and (which_flow == "Forward"):
+                    _, comp_flow = read_flows_from_folder(join(folder_train, folder))
+                elif ("backward" in folder) and (which_flow == "Backward"):
+                    _, comp_flow = read_flows_from_folder(join(folder_train, folder))
+
+            if ('GT' in folder):
+                if ("forward" in folder) and (which_flow == "Forward"):
+                    _, gt_flow = read_flows_from_folder(join(folder_train, folder))
+                elif ("backward" in folder) and (which_flow == "Backward"):
+                    _, gt_flow = read_flows_from_folder(join(folder_train, folder))
+
+
+        if ("pdate" in folder) and (which_model_part == "Update"):
+            if ("input" in folder):
+                    if ("forward" in folder) and (which_flow == "Forward"):
+                        _, in_flow = read_flows_from_folder(join(folder_train, folder))
+                    elif ("backward" in folder) and (which_flow == "Backward"):
+                        _, in_flow = read_flows_from_folder(join(folder_train, folder))
+
+
+            if ('computed' in folder):
+                if ("forward" in folder) and (which_flow == "Forward"):
+                    _, comp_flow = read_flows_from_folder(join(folder_train, folder))
+                elif ("backward" in folder) and (which_flow == "Backward"):
+                    _, comp_flow = read_flows_from_folder(join(folder_train, folder))
+
+            if ('GT' in folder):
+                if ("forward" in folder) and (which_flow == "Forward"):
+                    _, gt_flow = read_flows_from_folder(join(folder_train, folder))
+                elif ("backward" in folder) and (which_flow == "Backward"):
+                    _, gt_flow = read_flows_from_folder(join(folder_train, folder))
+
+
+    return in_flow, gt_flow, comp_flow
+
 if __name__ == "__main__":
     main()
