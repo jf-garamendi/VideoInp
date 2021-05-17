@@ -24,7 +24,7 @@ from utils.flow_viz import flow_to_image
 import torch
 from model.iterative import Flow2features, Features2flow, Res_Update
 
-def main():
+def main(verbose_root_dir):
     ####################
 
     # Render the readme as markdown
@@ -33,11 +33,9 @@ def main():
 
     # From the available trainings, choose one
     st.sidebar.title('Choose Training A')
-    verbose_root_dir = training_param.VERBOSE_ROOT_DIR
     _, selected_train_A = choose_folder_inside_folder(folder = verbose_root_dir, title ="Trainings list A:")
 
     st.sidebar.title('Choose Training B (to compare)')
-    verbose_root_dir = training_param.VERBOSE_ROOT_DIR
     _, selected_train_B = choose_folder_inside_folder(folder=verbose_root_dir, title="Trainings list B:")
 
     which_part = st.sidebar.radio("What model component do you want to see?", ("Encoder-Decoder", "Update"), index=1)
@@ -173,4 +171,10 @@ def read_flows_from_foldertrain(folder_train, which_model_part, which_flow):
     return in_flow, gt_flow, comp_flow
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) > 1:
+        folder = sys.argv[1]
+        print("Reading data from: ", folder)
+        main(folder)
+    else:
+        print("Please  specify the folder to read as first argument")
+        st.stop()
