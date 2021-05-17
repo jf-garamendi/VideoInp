@@ -57,3 +57,14 @@ The parameters of the training are defined at the beginning of the file
 
 ### Architecture and losses
 The architecture and losses are described in file `./doc/Flow_inpainting.pdf` chapter 3, page 18
+
+### Streamlit App
+In order to compare two different models use the streamlit app
+
+```bash
+cd UI_verbose
+streamlit run streamlit_app.py -- ../../../data/verbose/training_out/
+```
+
+Streamlit_app reads from '../../../data/verbose/training_out/' the output of the trainings and shows in a 
+web.

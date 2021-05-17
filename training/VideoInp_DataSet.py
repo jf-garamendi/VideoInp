@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(__file__, '..', '..')))
+
 import torch
 from torch.utils.data import Dataset, DataLoader
 from os import listdir
@@ -6,7 +10,6 @@ from utils.data_io import read_flow
 import numpy as np
 from utils.frame_utils import  apply_mask
 from utils.data_io import read_mask, read_frame
-import training_parameters
 import random
 import scipy.ndimage
 import cv2
@@ -15,6 +18,7 @@ np.random.seed(2021)
 random.seed(2021)
 torch.manual_seed(2021)
 from PIL import Image
+import training.training_parameters as training_parameters
 
 class VideoInp_DataSet(Dataset):
     def __init__(self, root_dir, number_of_frames = 5, training = True, random_mask_on_the_fly= False, n_masks=1):

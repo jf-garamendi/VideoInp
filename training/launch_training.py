@@ -189,6 +189,7 @@ def train_encoder_decoder(encoder, decoder, train_loader, test_loader, optim, lo
 
             #each component correspond to a video in the dataset
             flows_to_print = []
+            gt_flows_to_print=[]
             computed_flows_to_print = []
 
             encoder.eval()
@@ -207,6 +208,7 @@ def train_encoder_decoder(encoder, decoder, train_loader, test_loader, optim, lo
 
                     computed_flows = decoder(encoder(flows))
 
+                    gt_flows_to_print.append(gt_flows)
                     flows_to_print.append(flows)
                     computed_flows_to_print.append(computed_flows)
 
@@ -223,7 +225,7 @@ def train_encoder_decoder(encoder, decoder, train_loader, test_loader, optim, lo
             name_of_scalars =  test_loss_names + ['Encoder-Decoder Total Test Loss']
 
             show_statistics(epoch, verbose_dir, scalars_to_show, name_of_scalars,  'encDec_', TB_writer,
-                            input_flow_list=flows_to_print, computed_flow_list=computed_flows_to_print)
+                            input_flow_list=flows_to_print, computed_flow_list=computed_flows_to_print, gt_flow_list=gt_flows_to_print)
 
             encoder.train()
             decoder.train()
@@ -337,7 +339,8 @@ def train_update(flow2F, F2flow, update_net, train_loader, test_loader,
 
             # each component correspond to a video in the dataset
             flows_to_print = []
-            computed_flows_to_print = [new_flow]
+            gt_flows_to_print=[]
+            computed_flows_to_print = []
             computed_frames_to_print = []
 
             #update_net.eval()
@@ -407,6 +410,7 @@ def train_update(flow2F, F2flow, update_net, train_loader, test_loader,
 
                     flows_to_print.append(flows)
                     computed_flows_to_print.append(new_flow)
+                    gt_flows_to_print.append(gt_flows)
 
                     # computed_frames = from_flow_to_frame_seamless(frames=frames, flows=flows, masks=masks)
                     computed_frames = from_flow_to_frame(frames=frames, flows=flows, masks=masks)
@@ -419,7 +423,7 @@ def train_update(flow2F, F2flow, update_net, train_loader, test_loader,
 
             show_statistics(epoch, verbose_dir, scalars_to_show, name_of_scalars, 'update_', TB_writer,
                             input_flow_list=flows_to_print, computed_flow_list=computed_flows_to_print,
-                            computed_frames_list=computed_frames_to_print)
+                            computed_frames_list=computed_frames_to_print, gt_flow_list=gt_flows_to_print)
 
             update_net.train()
 
@@ -540,28 +544,28 @@ def main():
 
     ## DATAASETS
     #Dataset for Encoder/Decode
-    encDec_train_data = VideoInp_DataSet(param.ENC_DEC_TRAIN_ROOT_DIR,
+    encDec_train_data = VideoInp_DataSet(param.TRAIN_DATA_ROOT_DIR,
                                          training=True,
                                          number_of_frames = param.ingestion_number_of_frames,
                                          random_mask_on_the_fly=param.encdDec_random_mask_on_the_fly,
                                          n_masks=param.n_masks)
     encDec_train_loader = DataLoader(encDec_train_data, batch_size=1, shuffle=True, drop_last=False)
 
-    encDec_test_data = VideoInp_DataSet(param.ENC_DEC_TEST_ROOT_DIR,
+    encDec_test_data = VideoInp_DataSet(param.VAL_DATA_ROOT_DIR,
                                         number_of_frames=param.ingestion_number_of_frames,
                                         training=True,
                                         random_mask_on_the_fly=False)
     encDec_test_loader = DataLoader(encDec_test_data, batch_size=1, shuffle=False, drop_last=False)
 
     #Dataset for Update
-    update_train_data = VideoInp_DataSet(param.UPDATE_TRAIN_ROOT_DIR,
+    update_train_data = VideoInp_DataSet(param.TRAIN_DATA_ROOT_DIR,
                                          training=True,
                                          number_of_frames=param.ingestion_number_of_frames,
                                          random_mask_on_the_fly=param.update_random_mask_on_the_fly,
                                          n_masks=param.n_masks)
     update_train_loader = DataLoader(update_train_data, batch_size=1, shuffle=True, drop_last=False)
 
-    update_test_data = VideoInp_DataSet(param.UPDATE_TEST_ROOT_DIR,
+    update_test_data = VideoInp_DataSet(param.VAL_DATA_ROOT_DIR,
                                         number_of_frames=param.ingestion_number_of_frames,
                                         training=True, random_mask_on_the_fly=False)
     update_test_loader = DataLoader(update_test_data, batch_size=1, shuffle=False, drop_last=False)
