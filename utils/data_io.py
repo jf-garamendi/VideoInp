@@ -9,11 +9,26 @@ from utils.flow_viz import flow_to_image
 
 import cv2
 import io
+import logging
 
 cv2.setNumThreads(0)
 cv2.ocl.setUseOpenCL(False)
 
 TAG_CHAR = np.array([202021.25], np.float32)
+
+def create_dirs(dirs):
+    """
+    dirs - a list of directories to create if these directories are not found
+    :param dirs:
+    :return:
+    """
+    try:
+        for dir_ in dirs:
+            if not os.path.exists(dir_):
+                os.makedirs(dir_)
+    except Exception as err:
+        logging.getLogger("Dirs Creator").info("Creating directories error: {0}".format(err))
+        exit(-1)
 
 def create_dir(dir):
     """Creates a directory if not exist.

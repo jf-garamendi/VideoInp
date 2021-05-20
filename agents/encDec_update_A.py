@@ -2,14 +2,16 @@
 The Base Agent class, where all other agents inherit from, that contains definitions for all the necessary functions
 """
 import logging
+from agents.base import  BaseAgent
 
-
-class BaseTrainingAgent:
+class EncDec_update_agent_A(BaseAgent):
     """
     This base class will contain the base functions to be overloaded by any agent you will implement.
     """
 
-    def __init__(self, config):
+    def __init__(self,  config, **models):
+        super().__init__(config)
+
         self.config = config
         self.logger = logging.getLogger("Agent")
 
@@ -27,6 +29,13 @@ class BaseTrainingAgent:
         :param file_name: name of the checkpoint file
         :param is_best: boolean flag to indicate whether current checkpoint's metric is the best so far
         :return:
+        """
+        raise NotImplementedError
+
+    def train_one_epoch(self):
+        """
+            One epoch of training
+            :return:
         """
         raise NotImplementedError
 
