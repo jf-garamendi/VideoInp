@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
-from base import BaseTemplate
+from .base import BaseTemplate
 from .custom_layers.partialconv2d import PartialConv2d
 from utils.frame_utils import warp
 

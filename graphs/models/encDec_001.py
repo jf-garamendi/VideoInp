@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
-from base import BaseTemplate
+from .base import BaseTemplate
 
 
 class EncDec_001(BaseTemplate):

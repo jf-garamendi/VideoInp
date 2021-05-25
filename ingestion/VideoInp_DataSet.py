@@ -21,18 +21,19 @@ from PIL import Image
 import training.training_parameters as training_parameters
 
 class VideoInp_DataSet(Dataset):
-    def __init__(self, root_dir, number_of_frames = 5, training = True, random_mask_on_the_fly= False, n_masks=1):
+    def __init__(self, root_dir, GT=True, number_of_frames = 5, random_holes_on_the_fly= False,
+                 n_random_holes_per_frame=1):
         # root_dir:
         # nFrames: NOT IMPLEMENTED
         # random_mask_on_the_fly: If True, then does not read the mask from file and generate a random square mask
         # flow_on_the_fly: NOT IMPLEMENTED. Does not read the optical flow from file and Computes it flow on the fly
-        # training: If training is True, then we read the Ground Truth
+        # GT: If True, then we read (and return) the Ground Truth
 
         self.root_dir = root_dir
-        self.training = training
+        self.GT = GT
 
-        self.random_mask_on_the_fly = random_mask_on_the_fly
-        self.n_masks = n_masks
+        self.random_holes_on_the_fly = random_holes_on_the_fly
+        self.n_random_holes_per_frame = n_random_holes_per_frame
 
         self.video_folders = list(sorted(listdir(root_dir)))
 
@@ -95,7 +96,7 @@ class VideoInp_DataSet(Dataset):
 
             #Load (or create) mask
             mask = 0
-            if self.random_mask_on_the_fly:
+            if self.random_holes_on_the_fly:
                 mask = self.compute_random_mask(fwd_flow.shape[0], fwd_flow.shape[1])
             else:
                 mask_name = join(masks_folder, mask_files[i])
@@ -121,7 +122,7 @@ class VideoInp_DataSet(Dataset):
             mask_list.append(dilated_mask)
             flow_list.append(masked_flow)
 
-            if self.training:
+            if self.GT:
                 gt_frame = read_frame(join(gt_frames_folder, frame_files[i]))
                 gt_frames_list.append(gt_frame)
 
@@ -147,7 +148,7 @@ class VideoInp_DataSet(Dataset):
 
         mask = np.zeros((H_frame, W_frame)).astype(np.uint8)
 
-        for i in range(self.n_masks):
+        for i in range(self.n_random_holes_per_frame):
             top_left = (np.random.randint(0,H_frame), np.random.randint(0,W_frame))
 
             bottom_right = (

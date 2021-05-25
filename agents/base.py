@@ -9,11 +9,10 @@ class BaseAgent:
     This base class will contain the base functions to be overloaded by any agent you will implement.
     """
 
-    def __init__(self, config, **models):
-        self.config = config
+    def __init__(self):
         self.logger = logging.getLogger("Agent")
 
-    def load_checkpoint(self, file_name):
+    def load_checkpoint(self, chk_config):
         """
         Latest checkpoint loader
         :param file_name: name of the checkpoint file
@@ -21,7 +20,7 @@ class BaseAgent:
         """
         raise NotImplementedError
 
-    def save_checkpoint(self, file_name="checkpoint.pth.tar", is_best=0):
+    def save_checkpoint(self, chk_config, is_best=0):
         """
         Checkpoint saver
         :param file_name: name of the checkpoint file

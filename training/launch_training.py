@@ -2,14 +2,13 @@ import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(__file__, '..', '..')))
 
-from training.VideoInp_DataSet import VideoInp_DataSet
+from ingestion.VideoInp_DataSet import VideoInp_DataSet
 from torch.utils.data import DataLoader
 
 from model.iterative import Flow2features, Features2flow, Res_Update
 
-from torch import optim, nn
+from torch import optim
 
-from torchvision import transforms
 import torch
 import torchvision
 from PIL import Image
@@ -20,14 +19,12 @@ from torch.utils.tensorboard import SummaryWriter
 import matplotlib.pyplot as plt
 from utils.flow_viz import flow_to_image
 
-from tqdm import tqdm
 import numpy as np
 
 from utils.data_io import tensor_save_flow_and_img
 from os.path import join
-from torchviz import make_dot
 
-from utils.utils_from_FGVC.from_flow_to_frame import from_flow_to_frame_seamless, from_flow_to_frame
+from utils.utils_from_FGVC.from_flow_to_frame import from_flow_to_frame
 from tqdm import tqdm
 
 import training.training_parameters as param
@@ -547,27 +544,27 @@ def main():
     encDec_train_data = VideoInp_DataSet(param.TRAIN_DATA_ROOT_DIR,
                                          training=True,
                                          number_of_frames = param.ingestion_number_of_frames,
-                                         random_mask_on_the_fly=param.encdDec_random_mask_on_the_fly,
-                                         n_masks=param.n_masks)
+                                         random_holes_on_the_fly=param.encdDec_random_mask_on_the_fly,
+                                         n_random_holes_per_frame=param.n_masks)
     encDec_train_loader = DataLoader(encDec_train_data, batch_size=1, shuffle=True, drop_last=False)
 
     encDec_test_data = VideoInp_DataSet(param.VAL_DATA_ROOT_DIR,
                                         number_of_frames=param.ingestion_number_of_frames,
                                         training=True,
-                                        random_mask_on_the_fly=False)
+                                        random_holes_on_the_fly=False)
     encDec_test_loader = DataLoader(encDec_test_data, batch_size=1, shuffle=False, drop_last=False)
 
     #Dataset for Update
     update_train_data = VideoInp_DataSet(param.TRAIN_DATA_ROOT_DIR,
                                          training=True,
                                          number_of_frames=param.ingestion_number_of_frames,
-                                         random_mask_on_the_fly=param.update_random_mask_on_the_fly,
-                                         n_masks=param.n_masks)
+                                         random_holes_on_the_fly=param.update_random_mask_on_the_fly,
+                                         n_random_holes_per_frame=param.n_masks)
     update_train_loader = DataLoader(update_train_data, batch_size=1, shuffle=True, drop_last=False)
 
     update_test_data = VideoInp_DataSet(param.VAL_DATA_ROOT_DIR,
                                         number_of_frames=param.ingestion_number_of_frames,
-                                        training=True, random_mask_on_the_fly=False)
+                                        training=True, random_holes_on_the_fly=False)
     update_test_loader = DataLoader(update_test_data, batch_size=1, shuffle=False, drop_last=False)
 
     # Net Models

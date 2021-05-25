@@ -4,25 +4,17 @@ sys.path.append(os.path.abspath(os.path.join(__file__, '..', '..')))
 
 import streamlit as st
 from pathlib import Path
-from glob import glob
 
 from os import listdir
 from os.path import join
 
-from training.VideoInp_DataSet import VideoInp_DataSet
-from torch.utils.data import DataLoader
-from training.launch_training import update_step
-from utils.data_io import read_frame, read_flow
-from utils.flow_viz import flow_to_image
+from utils.data_io import read_flow
 
 # TODO: Remove this, the parameters should be saved in the checkpoint and readed from it.
 import training.training_parameters as training_param
 
-from PIL import Image
-import numpy as np
 from utils.flow_viz import flow_to_image
-import torch
-from model.iterative import Flow2features, Features2flow, Res_Update
+
 
 def main(verbose_root_dir):
     ####################
