@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 
 class Flow2features(nn.Module):
-    def __init__(self, in_channels=4):
+    def __init__(self, in_channels=5):
         super(Flow2features, self).__init__()
 
         self.conv1 = nn.Sequential(
@@ -21,9 +21,15 @@ class Flow2features(nn.Module):
             nn.LeakyReLU()
         )
 
-    def forward(self, x):
-        # to CxNframexHxW
-        x = torch.unsqueeze(x.permute(1,0,2,3), 0)
+    def forward(self, flows, masks):
+        # to BxCxNframexHxW
+        flows = torch.unsqueeze(flows.permute(1,0,2,3), 0)
+
+        #transform masks to have 0 inside hole
+        masks = 1 - torch.unsqueeze(masks.permute(1,0,2,3),0)
+
+        #join masks as a 5th channel
+        x = torch.cat( (flows, masks), 1)
 
         out = x
         out = self.conv1(out)

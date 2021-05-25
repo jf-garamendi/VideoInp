@@ -139,16 +139,19 @@ def train_encoder_decoder(encoder, decoder, train_loader, test_loader, optim, lo
             # Remove the batch dimension (for pierrick architecture is needed B to be 1)
             flows = flows.view(B * N, C, H, W)
             gt_flows = gt_flows.view(B * N, C, H, W)
+            # masks: 1 inside the hole
+            masks = masks.view(B * N, 1, H, W)
 
             # place data on device
             flows = flows.to(DEVICE)
             gt_flows = gt_flows.to(DEVICE)
+            masks = masks.to(DEVICE)
 
             # zero the parameter gradients
             optim.zero_grad()
 
             # Forward Pass
-            computed_flows = decoder(encoder(flows))
+            computed_flows = decoder(encoder(flows, masks))
 
             train_loss = torch.tensor(0).to(DEVICE)
             i=0
@@ -201,12 +204,13 @@ def train_encoder_decoder(encoder, decoder, train_loader, test_loader, optim, lo
 
                     flows = flows.view(B * N, C, H, W)
                     gt_flows = gt_flows.view(B * N, C, H, W)
+                    masks = masks.view(B * N, 1, H, W)
 
                     # place data on device
                     flows = flows.to(DEVICE)
                     gt_flows = gt_flows.to(DEVICE)
 
-                    computed_flows = decoder(encoder(flows))
+                    computed_flows = decoder(encoder(flows, masks))
 
                     gt_flows_to_print.append(gt_flows)
                     flows_to_print.append(flows)
@@ -279,7 +283,7 @@ def train_update(flow2F, F2flow, update_net, train_loader, test_loader,
 
             new_flow = iflows.clone()
 
-            F = flow2F(iflows)
+            F = flow2F(iflows, masks)
 
             step = -1
             while (gained_confidence.sum() >0) and (step <= param.max_num_steps):
@@ -368,7 +372,7 @@ def train_update(flow2F, F2flow, update_net, train_loader, test_loader,
                     gained_confidence = initial_confidence
 
                     new_flow = flows.clone()
-                    F = flow2F(flows)
+                    F = flow2F(flows, masks)
 
                     step = -1
                     loss_to_print=[]
@@ -571,7 +575,7 @@ def main():
     update_test_loader = DataLoader(update_test_data, batch_size=1, shuffle=False, drop_last=False)
 
     # Net Models
-    flow2F = Flow2features()
+    flow2F = Flow2features(in_channels=5)
     F2flow = Features2flow()
     update_net = Res_Update(update=param.partial_mode_update)
 
