@@ -16,6 +16,43 @@ cv2.ocl.setUseOpenCL(False)
 
 TAG_CHAR = np.array([202021.25], np.float32)
 
+def verbose_images(verbose_dir, prefix = '',
+                   input_flow=None, computed_flow=None, gt_flow=None, computed_frames=None):
+
+    if input_flow is not None:
+        folder = join(verbose_dir, prefix + 'input_forward_flow')
+        tensor_save_flow_and_img(input_flow[:, 0:2, :, :], folder)
+
+        # save Backward flow images
+        folder = join(verbose_dir, prefix + 'input_backward_flow' )
+        tensor_save_flow_and_img(input_flow[:, 2:, :, :], folder)
+
+    if  computed_flow is not None:
+        folder = join(verbose_dir, prefix + 'computed_forward_flow' )
+        tensor_save_flow_and_img(computed_flow[:, 0:2, :, :], folder)
+
+        folder = join(verbose_dir, prefix + 'computed_backward_flow' )
+        tensor_save_flow_and_img(computed_flow[:, 2:, :, :], folder)
+
+
+    if gt_flow is not None:
+        folder = join(verbose_dir, prefix + 'GT_forward_flow' )
+        tensor_save_flow_and_img(gt_flow[:, 0:2, :, :], folder)
+
+        folder = join(verbose_dir, prefix + 'GT_backward_flow')
+        tensor_save_flow_and_img(gt_flow[:, 2:, :, :], folder)
+
+
+    if computed_frames is not None:
+        folder = join(verbose_dir, prefix + 'warped_frames')
+        create_dir(folder)
+        for n_frame in range(computed_frames.shape[3]):
+            frame_blend = computed_frames[:, :, :, n_frame]
+            m_pil = Image.fromarray((255 * np.squeeze(frame_blend)).astype(np.uint8))
+            if m_pil.mode != 'RGB':
+                m_pil = m_pil.convert('RGB')
+            m_pil.save(folder + '/{:04d}_.png'.format(n_frame))
+
 def create_dirs(dirs):
     """
     dirs - a list of directories to create if these directories are not found

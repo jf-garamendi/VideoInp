@@ -18,7 +18,7 @@ np.random.seed(2021)
 random.seed(2021)
 torch.manual_seed(2021)
 from PIL import Image
-import training.training_parameters as training_parameters
+import configs.folder_structure as folder_structure
 
 class VideoInp_DataSet(Dataset):
     def __init__(self, root_dir, GT=True, number_of_frames = 5, random_holes_on_the_fly= False,
@@ -51,14 +51,14 @@ class VideoInp_DataSet(Dataset):
 
         video_folder = join(self.root_dir, self.video_folders[idx])
 
-        masks_folder = join(video_folder, training_parameters.MASKS_FOLDER)
-        fwd_flow_folder = join(video_folder, training_parameters.FWD_FLOW_FOLDER)
-        bwd_flow_folder = join(video_folder, training_parameters.BWD_FLOW_FOLDER)
-        frames_folder = join(video_folder, training_parameters.FRAMES_FOLDER)
+        masks_folder = join(video_folder, folder_structure.MASKS_FOLDER)
+        fwd_flow_folder = join(video_folder, folder_structure.FWD_FLOW_FOLDER)
+        bwd_flow_folder = join(video_folder, folder_structure.BWD_FLOW_FOLDER)
+        frames_folder = join(video_folder, folder_structure.FRAMES_FOLDER)
 
-        gt_fwd_flow_folder = join(video_folder, training_parameters.GT_FWD_FLOW_FOLDER)
-        gt_bwd_flow_folder = join(video_folder, training_parameters.GT_BWD_FLOW_FOLDER)
-        gt_frames_folder = join(video_folder, training_parameters.GT_FRAMES_FOLDER)
+        gt_fwd_flow_folder = join(video_folder, folder_structure.GT_FWD_FLOW_FOLDER)
+        gt_bwd_flow_folder = join(video_folder, folder_structure.GT_BWD_FLOW_FOLDER)
+        gt_frames_folder = join(video_folder, folder_structure.GT_FRAMES_FOLDER)
 
         mask_files = list(sorted(listdir(masks_folder)))
         frame_files = list(sorted(listdir(frames_folder)))

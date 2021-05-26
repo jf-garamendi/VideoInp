@@ -4,25 +4,25 @@ import torch.nn.functional as F
 from .base import BaseTemplate
 
 
-class EncDec_001(BaseTemplate):
+class EncDec_pierrick(BaseTemplate):
     def __init__(self, in_channels=4, features_channels=32):
-        super(EncDec_001, self).__init__()
+        super(EncDec_pierrick, self).__init__()
 
         ##Encoder
-        self.conv_enc_1 = nn.Sequential(
-            nn.Conv3d(in_channels, 32, 3, 1, 1),
-            nn.BatchNorm3d(32),
-            nn.LeakyReLU()
-        )
+        self.in_c = nn.Conv2d(in_channels, 32, kernel_size=1)
 
-        self.conv_enc_2 = nn.Sequential(
-            nn.Conv3d(32, 32, 3, 1, 1),
-            nn.BatchNorm3d(32),
-            nn.LeakyReLU()
-        )
+        self.conv_enc_1 = nn.Sequential(
+            nn.Conv2d(32, 32, 3, 1, 1),
+            nn.BatchNorm2d(32),
+            nn.LeakyReLU())
+
+        self.conv_enc_2 =nn.Sequential(
+            nn.Conv2d(32, 32, 3, 1, 1),
+            nn.BatchNorm2d(32),
+            nn.LeakyReLU())
 
         ##Decoder
-        self.conv_dec_1 = nn.Conv3d(features_channels, 4, kernel_size=1)
+        self.conv_dec_1 = nn.Conv2d(32, 4, kernel_size=1)
 
     def encode(self, flows):
         # flows shape BxCxTxHxW
@@ -32,7 +32,8 @@ class EncDec_001(BaseTemplate):
         # H: Frame height
         # W: Frame width
 
-        out = self.conv_enc_1(flows)
+        out = self.in_c(flows)
+        out = out + self.conv_enc_1(out)
         out = out + self.conv_enc_2(out)
 
         return out

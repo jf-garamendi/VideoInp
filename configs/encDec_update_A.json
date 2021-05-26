@@ -1,13 +1,14 @@
 {
   "general": {
-    "exp_name": "debug",
+    "exp_name": "debug_newArch",
     "agent": "EncDec_update_agent_A",
     "mode" : "train",
-    "log_dir": "../../data/verbose/logs/"
+    "log_dir": "../../data/verbose/logs/",
+    "device": "cuda"
   },
 
   "data": {
-    "train_root_dir": "../../data/datasets/built/davis_no_mask",
+    "train_root_dir": "../../data/datasets/built/5Tennis_c",
     "val_root_dir": "../../data/datasets/built/5Tennis_c",
     "train_batch_size": 1,
     "val_batch_size": 1,
@@ -25,15 +26,17 @@
 
   "model": {
     "max_num_steps_update": 20,
-    "encDec_n_epochs": 10000,
-    "update_n_epochs": 30000,
-    "encDec" : "EncDec_001",
-    "update" : "Update_001",
+    "encDec" : "EncDec_pierrick",
+    "update" : "Update_pierrick",
     "partial_mode_update" : "pow"
   },
 
+  "training": {
+    "encDec_n_epochs": 10000,
+    "update_n_epochs": 30000
+  },
+
   "verbose": {
-    "showing_n_iter": 1,
     "tensorboard_root_dir": "../../data/verbose/tensor_board/",
     "val_out_images" : "../../data/verbose/training_out/"
   },
@@ -46,23 +49,15 @@
 
   },
 
-  "encDec_losses": {
-    "losses": ["L1"],
-    "weights": [1]
-  },
-
-
-  "update_losses": {
-    "losses": [
-      "L1",
-      "TV",
-      "minfbbf"
-    ],
-    "weights": [
-      1,
-      10,
-      2
-    ]
+  "losses": {
+    "encDec_losses": {
+      "losses": ["L1_loss"],
+      "weights": [1]
+    },
+    "update_losses": {
+      "losses": ["L1_loss"],
+      "weights": [1]
+    }
   },
 
   "custom_layers": {

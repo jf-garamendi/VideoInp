@@ -10,6 +10,7 @@ class BaseAgent:
     """
 
     def __init__(self):
+        self.mode = None
         self.logger = logging.getLogger("Agent")
 
     def load_checkpoint(self, chk_config):
@@ -29,12 +30,31 @@ class BaseAgent:
         """
         raise NotImplementedError
 
+    
+    def run(self):
+        """
+        The main operator
+        :return:
+        """
+        assert self.mode in ['train', 'test']
+
+        try:
+            if self.mode == 'test':
+                self.test()
+            else:
+                self.train()
+
+        except KeyboardInterrupt:
+            self.logger.info("You have entered CTRL+C.. Wait to finalize")
+    
+    
     def train_one_epoch(self):
         """
             One epoch of training
             :return:
         """
         raise NotImplementedError
+        
 
     def train(self):
         """
@@ -64,3 +84,6 @@ class BaseAgent:
         :return:
         """
         raise NotImplementedError
+
+    def test(self):
+        pass

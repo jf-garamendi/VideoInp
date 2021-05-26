@@ -5,11 +5,11 @@ from .base import BaseTemplate
 from .custom_layers.partialconv2d import PartialConv2d
 from utils.frame_utils import warp
 
-class Update(BaseTemplate):
+class Update_pierrick(BaseTemplate):
     def __init__(self, in_channels = 32 * 3, update='pow',
                  encoder=None, decoder = None,
                  max_num_steps = 20):
-        super(Update, self).__init__()
+        super(Update_pierrick, self).__init__()
 
         self.pconv1 = PartialConv2d(multi_channel='semi', return_mask=True, kernel_size=(3, 3), padding=1,
                                 in_channels=in_channels, out_channels=64, update=update)
