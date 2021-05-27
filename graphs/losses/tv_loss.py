@@ -2,11 +2,13 @@ import torch
 import torch.nn as nn
 
 class TV_loss(nn.Module):
-    def __init__(self):
+    def __init__(self, device = 'cpu'):
         super().__init__()
 
-    def forward(self, u, device='cpu'):
-        EPS = torch.tensor(1e-3).to(device)
+        self.device = device
+
+    def forward(self, u, **kwargs):
+        EPS = torch.tensor(1e-3).to(self.device)
 
         u_h = u[:, :, 1:, :-1] - u[:, :, :-1, :-1]
         u_w = u[:, :, :-1, 1:] - u[:, :, :-1, :-1]

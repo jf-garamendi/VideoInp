@@ -8,7 +8,7 @@
   },
 
   "data": {
-    "train_root_dir": "../../data/datasets/built/5Tennis_c",
+    "train_root_dir": "../../data/datasets/built/davis_no_mask",
     "val_root_dir": "../../data/datasets/built/5Tennis_c",
     "train_batch_size": 1,
     "val_batch_size": 1,
@@ -32,13 +32,13 @@
   },
 
   "training": {
-    "encDec_n_epochs": 10000,
-    "update_n_epochs": 30000
+    "encDec_n_epochs": 1000,
+    "update_n_epochs": 2000
   },
 
   "verbose": {
     "tensorboard_root_dir": "../../data/verbose/tensor_board/",
-    "val_out_images" : "../../data/verbose/training_out/"
+    "verbose_out_images" : "../../data/verbose/training_out/"
   },
 
   "checkpoint": {

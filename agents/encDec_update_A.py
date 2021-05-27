@@ -38,20 +38,28 @@ class EncDec_update_agent_A(BaseAgent):
         self.update_n_epochs = config.training.update_n_epochs
 
         self.encDec_loss = None
+        self.update_loss = None
 
 
         self.mode = config.general.mode
+
+        ## Member variables
+        self.encDec_losses_fn = []
+        self.encDec_losses_weight = []
+
+        self.update_losses_fn = []
+        self.update_losses_weight = []
 
         ######################
         # Folders
         self.exp_name = config.general.exp_name
         self.tb_stats_dir = join(config.verbose.tensorboard_root_dir, self.exp_name)
         self.checkpoint_dir = join(config.checkpoint.root_dir, self.exp_name)
-        self.val_out_images = config.verbose.val_out_images
+        self.verbose_out_images = join(config.verbose.verbose_out_images, self.exp_name)
 
         create_dir(self.checkpoint_dir)
         create_dir(self.tb_stats_dir)
-        create_dir(self.val_out_images)
+        create_dir(self.verbose_out_images)
         self.encDec_checkpoint_filename = join(self.checkpoint_dir, config.checkpoint.enc_dec_checkpoint_filename)
         self.update_checkpoint_filename = join(self.checkpoint_dir, config.checkpoint.update_checkpoint_filename)
 
@@ -68,7 +76,7 @@ class EncDec_update_agent_A(BaseAgent):
         self.set_losses(config.losses)
 
         # Tensor Board writers
-        self.TB_writer = SummaryWriter(config.verbose.tensorboard_root_dir)
+        self.TB_writer = SummaryWriter(join(config.verbose.tensorboard_root_dir, self.exp_name))
 
         #################################
         # If exists checkpoints, load them
@@ -95,12 +103,12 @@ class EncDec_update_agent_A(BaseAgent):
 
     def set_model(self, model_config):
         self.encoder_decoder = globals()[model_config.encDec]
-        self.encoder_decoder = self.encoder_decoder()
+        self.encoder_decoder = self.encoder_decoder().to(self.device)
 
         self.update = globals()[model_config.update]
-        self.update = self.update(update=model_config.partial_mode_update)
+        self.update = self.update(update=model_config.partial_mode_update, device=self.device).to(self.device)
 
-        self.max_num_steps_update = model_config.config.max_num_steps_update
+        self.max_num_steps_update = model_config.max_num_steps_update
 
     def set_optimizer(self, optim_config):
         self.encDec_optimizer = optim.Adam(self.encoder_decoder.parameters(),
@@ -115,18 +123,14 @@ class EncDec_update_agent_A(BaseAgent):
 
     def set_losses(self, loss_config):
 
-        self.encDec_losses_fn = []
-        self.encDec_losses_weight = []
 
-        self.update_losses_fn = []
-        self.update_losses_weight = []
 
         for loss, weight in zip(loss_config.encDec_losses.losses, loss_config.encDec_losses.weights):
-            self.encDec_losses_fn.append(globals()[loss]())
+            self.encDec_losses_fn.append(globals()[loss](device= self.device))
             self.encDec_losses_weight.append(weight)
 
         for loss, weight in zip(loss_config.update_losses.losses, loss_config.update_losses.weights):
-            self.update_losses_fn.append(globals()[loss]())
+            self.update_losses_fn.append(globals()[loss](device = self.device))
             self.update_losses_weight.append(weight)
 
     # END of SET FUNCTIONS
@@ -156,7 +160,7 @@ class EncDec_update_agent_A(BaseAgent):
             self.update.load_state_dict(checkpoint['update_state_dict'])
             self.update_optimizer.load_state_dict((checkpoint['optimizer_state_dict']))
             self.update_epoch = checkpoint['epoch']
-            self.update_loss = checkpoint['total_loss']
+            #self.update_loss = checkpoint['total_loss']
 
             print('** Checkpoint ' + self.update_checkpoint_filename + ' loaded \n')
 
@@ -175,8 +179,24 @@ class EncDec_update_agent_A(BaseAgent):
             shutil.copyfile(self.encDec_checkpoint_filename,
                             self.encDec_checkpoint_filename[:-4] +'_best.tar')
 
-        print('\n Checkpoints saved')
+        print('\n Encoder-Decoder Checkpoints saved')
 
+    def save_checkpoint_update(self, is_best=False):
+        chk = {
+            'epoch': self.update_epoch,
+            'model_state_dict': self.update.state_dict(),
+            'optimizer_state_dict': self.update.state_dict(),
+            'device': self.device,
+            'total_loss': self.update_loss
+        }
+
+        torch.save(chk, self.update_checkpoint_filename)
+
+        if is_best:
+            shutil.copyfile(self.update_checkpoint_filename,
+                            self.update_checkpoint_filename[:-4] +'_best.tar')
+
+        print('\n Update Checkpoints saved')
     def save_checkpoint(self, chk_config, is_best=0):
         """
         Checkpoint saver
@@ -186,7 +206,6 @@ class EncDec_update_agent_A(BaseAgent):
         """
         raise NotImplementedError
 
-
     def train_one_epoch(self):
         """
             One epoch of training
@@ -194,13 +213,17 @@ class EncDec_update_agent_A(BaseAgent):
         """
         raise NotImplementedError
 
-    def train_one_epoch_encDec(self):
+    def run_one_epoch_encDec(self, data_loader, training = True, verbose = False):
         # train mode
-        self.encoder_decoder.train()
+        if training:
+            self.encoder_decoder.train()
+        else:
+            self.encoder_decoder.eval()
 
         loss2print = [0] * len(self.encDec_losses_fn)
 
-        for data in tqdm(self.train_loader, leave=False, desc='    Videos: '):
+        nSec = 1
+        for data in tqdm(data_loader, leave=False, desc='    Videos: '):
             _, flows, masks, _, gt_flows = data
 
             B, N, C, H, W = flows.shape
@@ -209,7 +232,13 @@ class EncDec_update_agent_A(BaseAgent):
             flows = flows.view(B * N, C, H, W)
             gt_flows = gt_flows.view(B * N, C, H, W)
 
-            self.encDec_optimizer.zero_grad()
+            # place data on device
+            flows = flows.to(self.device)
+            gt_flows = gt_flows.to(self.device)
+
+            if training:
+                self.encDec_optimizer.zero_grad()
+
             # Forward Pass
             computed_flows = self.encoder_decoder(flows)
 
@@ -222,22 +251,33 @@ class EncDec_update_agent_A(BaseAgent):
                 train_loss = train_loss + unitary_loss
 
                 # normalize loss by the number of videos in the test dataset and the bunch of epochs
-                loss2print[i] += unitary_loss.item() / len(self.train_loader)
+                loss2print[i] += unitary_loss.item() / len(data_loader)
 
                 i += 1
 
-            #Bak-Propagation
-            train_loss.backward()
-            self.encDec_optimizer.step()
+            if training:
+                #Bak-Propagation
+                train_loss.backward()
+                self.encDec_optimizer.step()
+
+            if verbose:
+                verbose_images(self.verbose_out_images, prefix='encDec_sec_{}_'.format(str(nSec)),
+                               input_flow=flows, computed_flow=computed_flows,
+                               gt_flow=gt_flows)
+                nSec += 1
 
         return loss2print
 
-    def train_one_epoch_update(self):
-        self.update.train()
+    def run_one_epoch_update(self,  data_loader, training = True, verbose = False):
+        torch.autograd.set_detect_anomaly(True)
 
-        loss2print = [0] * len(self.encDec_losses_fn)
+        if training:
+            self.update.train()
 
-        for data in tqdm(self.train_loader, leave=False, desc='    Videos: '):
+        loss2print = [0] * len(self.update_losses_fn)
+
+        nSec = 1
+        for data in tqdm(data_loader, leave=False, desc='    Videos: '):
             _, iflows, masks, _, gt_flows = data
 
             B, N, C, H, W = iflows.shape
@@ -259,46 +299,57 @@ class EncDec_update_agent_A(BaseAgent):
             confidence = initial_confidence.clone()
             gained_confidence = initial_confidence
 
-            new_flow = iflows.clone()
+            computed_flows = iflows.clone()
 
             F = self.encoder_decoder.encode(iflows)
 
             step = -1
             while (gained_confidence.sum() > 0) and (step <= self.max_num_steps_update):
+                loss2print = [0] * len(self.update_losses_fn)
                 step += 1
                 # print(step)
 
-                self.update_optimizer.zero_grad()
-                current_flow = new_flow.clone().detach()
+                if training:
+                    self.update_optimizer.zero_grad()
+
+                current_flow = computed_flows.clone().detach()
                 current_F = F.clone().detach()
 
-                new_F, confidence_new = self.update(current_F, current_flow, confidence)
+                new_F, confidence_new = self.update((current_F, current_flow, confidence))
 
                 gained_confidence = ((confidence_new > confidence) * confidence_new)
 
                 if gained_confidence.sum() > 0:
                     F = current_F * (confidence_new <= confidence) + new_F * (confidence_new > confidence)
-                    new_flow = self.encoder_decoder.decode(F)
+                    computed_flows = self.encoder_decoder.decode(F)
 
                     train_loss = torch.tensor(0).to(self.device)
                     i = 0
                     for loss, weight in zip(self.update_losses_fn, self.update_losses_weight):
                         unitary_loss = torch.tensor(weight).to(self.device) * \
-                                       loss(new_flow, mask=gained_confidence, ground_truth=gt_flows, device=self.device)
+                                       loss(computed_flows, mask=gained_confidence, ground_truth=gt_flows)
                         train_loss = train_loss + unitary_loss
 
                         # normalize loss by the number of videos in the test dataset and the bunch of epochs
-                        loss2print[i] += unitary_loss.item() / (len(self.train_loader) )
+                        loss2print[i] += unitary_loss.item() / (len(data_loader) )
 
                         i += 1
 
-                    #Back-Propagation
-                    train_loss.backward()
-                    self.update_optimizer.step()
+                    if training:
+                        #Back-Propagation
+                        train_loss.backward()
+                        self.update_optimizer.step()
 
                     # mask update before next step
                     confidence = confidence_new.clone().detach()
 
+            if verbose:
+                verbose_images(self.verbose_out_images, prefix='update_sec_{}_'.format(str(nSec)),
+                               input_flow=iflows, computed_flow=computed_flows,
+                               gt_flow=gt_flows)
+            nSec += 1
+
+        return loss2print
 
     def train(self):
         """
@@ -332,14 +383,16 @@ class EncDec_update_agent_A(BaseAgent):
 
         for epoch in tqdm(range(self.encDec_epoch+1, self.encDec_n_epochs),
                           initial = self.encDec_epoch, total=self.encDec_n_epochs,
-                          desc="Epoch"):
+                          desc="Enc/Dec Epoch"):
 
-            training_losses = self.train_one_epoch_encDec()
+            training_losses = self.run_one_epoch_encDec(data_loader= self.train_loader, training = True, verbose = False)
             # Add the total
             training_losses = training_losses + [sum(training_losses)]
             self.encDec_epoch = epoch
 
-            validation_losses = self.eval_encDec(self.val_loader, verbose=True)
+            with torch.no_grad():
+                validation_losses = self.run_one_epoch_encDec(data_loader = self.val_loader, training = False, verbose=True)
+
             validation_losses = validation_losses + [sum(validation_losses)]
 
             #Tensor board training
@@ -371,14 +424,16 @@ class EncDec_update_agent_A(BaseAgent):
 
         for epoch in tqdm(range(self.update_epoch + 1, self.update_n_epochs),
                           initial=self.update_epoch, total=self.update_n_epochs,
-                          desc="Epoch"):
+                          desc="Update Epoch"):
 
-            training_losses = self.train_one_epoch_update()
+            training_losses = self.run_one_epoch_update(data_loader=self.train_loader, training=True, verbose=False)
             # Add the total
             training_losses = training_losses + [sum(training_losses)]
             self.update_epoch = epoch
 
-            validation_losses = self.eval_update(self.val_loader, verbose=True)
+            with torch.no_grad():
+                validation_losses = self.run_one_epoch_update(data_loader=self.val_loader, training=False, verbose=True)
+
             validation_losses = validation_losses + [sum(validation_losses)]
 
             # Tensor board training
@@ -397,47 +452,6 @@ class EncDec_update_agent_A(BaseAgent):
                 self.update_loss = validation_losses[-1]
 
             self.save_checkpoint_update(is_best=is_best)
-
-
-
-    def eval_encDec(self, loader, verbose = False):
-        # train mode
-        self.encoder_decoder.eval()
-
-        loss2print = [0] * len(self.encDec_losses_fn)
-
-        nSec = 1
-        for data in tqdm(loader, leave=False, desc='    Videos: '):
-            _, flows, masks, _, gt_flows = data
-
-            B, N, C, H, W = flows.shape
-
-            # Remove the batch dimension (for pierrick architecture is needed B to be 1)
-            flows = flows.view(B * N, C, H, W)
-            gt_flows = gt_flows.view(B * N, C, H, W)
-
-            self.encDec_optimizer.zero_grad()
-            # Forward Pass
-            computed_flows = self.encoder_decoder(flows)
-
-            # Compute loss
-            i = 0
-            for loss, weight in zip(self.encDec_losses_fn, self.encDec_losses_weight):
-                unitary_loss = torch.tensor(weight).to(self.device) * \
-                               loss(computed_flows, ground_truth=gt_flows)
-
-                # normalize loss by the number of videos in the test dataset and the bunch of epochs
-                loss2print[i] += unitary_loss.item() / len(self.train_loader)
-
-                i += 1
-
-            verbose_images(self.val_out_images, prefix = 'encDec_sec_{}_'.format(str(nSec)),
-                        input_flow=flows, computed_flow=computed_flows,
-                        gt_flow=gt_flows)
-            nSec += 1
-        return loss2print
-
-    def eval_update(self, loader, verbose = False):
 
 
     def validate(self):

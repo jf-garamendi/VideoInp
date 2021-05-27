@@ -83,7 +83,7 @@ class BaseAgent:
         Finalizes all the operations of the 2 Main classes of the process, the operator and the data loader
         :return:
         """
-        raise NotImplementedError
+        pass
 
     def test(self):
         pass

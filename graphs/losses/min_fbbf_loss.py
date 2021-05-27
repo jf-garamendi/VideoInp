@@ -4,10 +4,12 @@ import torch.nn.functional
 
 
 class Min_fbbf_loss(nn.Module):
-    def __init__(self):
+    def __init__(self, device = 'cpu'):
         super().__init__()
 
-    def forward(self, flows, device = 'cpu'):
+        self.device = device
+
+    def forward(self, flows, **kwargs):
         n, c, h, w = flows.shape
 
         fw_flow = flows[:, 0:2, :, :]
@@ -20,17 +22,17 @@ class Min_fbbf_loss(nn.Module):
 
         return loss
 
-    def __fb(f, b, device):
+    def __fb(self, f, b):
         C, H, W = f.shape
         xx, yy = torch.meshgrid(torch.arange(H), torch.arange(W))
-        ind = torch.stack((yy, xx), dim=-1).to(device)
+        ind = torch.stack((yy, xx), dim=-1).to(self.device)
 
 
         grid = f.permute((1, 2, 0)) + ind
         grid = torch.unsqueeze(grid, 0)
 
         # Normalize coordinates to the square [-1, 1]
-        grid = (2*grid / torch.tensor([W, H]).view(1,1,1,2).to(device))-1
+        grid = (2*grid / torch.tensor([W, H]).view(1,1,1,2).to(self.device))-1
 
         b2warp = torch.unsqueeze(b, 0)
         interp = torch.nn.functional.grid_sample(b2warp, grid,

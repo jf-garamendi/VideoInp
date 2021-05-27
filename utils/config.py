@@ -83,7 +83,7 @@ def process_config(json_file):
     # create some important directories to be used for that experiment.
     config.summary_dir = os.path.join(config.verbose.tensorboard_root_dir, config.general.exp_name )
     config.checkpoint_dir = os.path.join(config.checkpoint.root_dir, config.general.exp_name)
-    config.out_dir = os.path.join(config.verbose.val_out_images, config.general.exp_name)
+    config.out_dir = os.path.join(config.verbose.verbose_out_images, config.general.exp_name)
     config.log_dir = os.path.join(config.general.log_dir, config.general.exp_name)
     create_dirs([config.summary_dir, config.checkpoint_dir, config.out_dir, config.log_dir])
 

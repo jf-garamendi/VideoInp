@@ -2,10 +2,12 @@ import torch
 import torch.nn as nn
 
 class L1_loss(nn.Module):
-    def __init__(self):
+    def __init__(self, device='cpu'):
         super().__init__()
 
-    def forward(self, candidate, ground_truth=None, mask=None):
+        self.device = device
+
+    def forward(self, candidate, ground_truth=None, mask=None, **kwargs):
         pointwise_error = (torch.abs(ground_truth - candidate)).mean(dim=1)
 
         loss = 0
