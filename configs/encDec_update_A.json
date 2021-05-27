@@ -55,8 +55,8 @@
       "weights": [1]
     },
     "update_losses": {
-      "losses": ["L1_loss"],
-      "weights": [1]
+      "losses": ["L1_loss", "TV_loss", "Min_fbbf_loss"],
+      "weights": [1, 10, 2]
     }
   },
 

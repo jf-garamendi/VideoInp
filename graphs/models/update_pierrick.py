@@ -24,27 +24,29 @@ class Update_pierrick(BaseTemplate):
         self.max_num_steps = max_num_steps
 
     def forward(self, x):
-        features, confidence = x
+        #for a video
+        features_in, flow_in, confidence_in = x
 
-        out1, new_confidence = self.pconv1(F.leaky_relu(self.bn1(features)), confidence)
-        out2, new_confidence = self.pconv2(F.leaky_relu(self.bn2(out1)), new_confidence)
-        ##############
+        x_list, confidence_list = self.__iterative_step(features_in, flow_for_warping=flow_in, confidence=confidence_in)
 
-        new_features = (features[:, 32:64] * confidence[:, 32:33] + out2 * (1 - confidence[:, 32:33]))
+        new_features_list = []
+        new_confidence_list = []
+        for x, confidence in zip (x_list, confidence_list):
+            out1, new_confidence = self.pconv1(F.leaky_relu(self.bn1(x)), confidence)
+            out2, new_confidence = self.pconv2(F.leaky_relu(self.bn2(out1)), new_confidence)
 
-        return new_features, new_confidence[:,0]
+            # force the initially confident pixels to stay confident, because a decay can be observed
+            # depending on the update rule of the partial convolution
+            new_confidence[confidence == 1] = 1.
 
-    def training_one_batch(self, batch):
-        return self.__full_iterative_scheme(batch, training=True)
+            new_features = (x[:, 32:64] * confidence[:, 32:33] + out2 * (1 - confidence[:, 32:33]))
 
-    def validating_one_batch(self, batch):
-        return self.__full_iterative_scheme(batch, training=False)
+            new_features_list.append(new_features)
+            new_confidence_list.append(new_confidence[:,0])
 
-    def inferring_one_batch(self, batch):
-        return self.__full_iterative_scheme(batch, training=False)
+        return new_features_list, new_confidence_list
 
-
-    def __iterative_step(self, features, confidence=None, flow_for_warping = None):
+    def __iterative_step(self, features, flow_for_warping=None, confidence=None):
         # flows shape BxTxCxHxW
         # B: batch
         # C: Channels
@@ -56,7 +58,8 @@ class Update_pierrick(BaseTemplate):
 
         new_features = features * 0
         new_confidence = confidence.clone()
-
+        x_list = []
+        confidence_list = []
         for n_frame in range(N):
             frame_flow = flow_for_warping[n_frame]
 
@@ -84,16 +87,23 @@ class Update_pierrick(BaseTemplate):
                                        (confidence_f).repeat(F_f.shape[0], 1, 1)),
                                       dim=0)  # same goes for the input mask
 
+            x_list.append(x)
+            confidence_list.append(in_confidence)
             # free memory as much as posible
+        return x_list, confidence_list
 
-            ### Convolutional UPDATE ###
-            new_features[n_frame], new_confidence[n_frame] = self(x, in_confidence)
+    '''
+    def training_one_batch(self, batch):
+        return self.__full_iterative_scheme(batch, training=True)
 
-            # force the initially confident pixels to stay confident, because a decay can be observed
-            # depending on the update rule of the partial convolution
-            new_confidence[n_frame][confidence[n_frame] == 1] = 1.
+    def validating_one_batch(self, batch):
+        return self.__full_iterative_scheme(batch, training=False)
 
-        return new_features, new_confidence
+    def inferring_one_batch(self, batch):
+        return self.__full_iterative_scheme(batch, training=False)
+
+
+    
     def __full_iterative_scheme(self, batch, training = False):
         # flows shape BxTxCxHxW
         # B: batch
@@ -185,3 +195,4 @@ class Update_pierrick(BaseTemplate):
     def save_chk(self, file):
 
         raise NotImplementedError
+    '''

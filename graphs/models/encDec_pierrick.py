@@ -57,6 +57,7 @@ class EncDec_pierrick(BaseTemplate):
 
         return out_flows
 
+'''
     def training_one_batch(self, batch):
         # flows shape BxCxTxHxW
         # B: batch
@@ -110,3 +111,4 @@ class EncDec_pierrick(BaseTemplate):
     def inferring_one_batch(self, batch):
 
         return self(batch)
+'''

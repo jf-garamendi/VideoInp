@@ -41,7 +41,7 @@ class BaseAgent:
         try:
             if self.mode == 'test':
                 self.test()
-            else:
+            elif self.mode == 'train':
                 self.train()
 
         except KeyboardInterrupt:
