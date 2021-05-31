@@ -157,10 +157,10 @@ class EncDec_update_agent_A(BaseAgent):
 
         if os.path.exists(self.update_checkpoint_filename):
             checkpoint = torch.load(self.update_checkpoint_filename, map_location='cpu')
-            self.update.load_state_dict(checkpoint['update_state_dict'])
+            self.update.load_state_dict(checkpoint['model_state_dict'])
             self.update_optimizer.load_state_dict((checkpoint['optimizer_state_dict']))
             self.update_epoch = checkpoint['epoch']
-            #self.update_loss = checkpoint['total_loss']
+            self.update_loss = checkpoint['total_loss']
 
             print('** Checkpoint ' + self.update_checkpoint_filename + ' loaded \n')
 
@@ -185,7 +185,7 @@ class EncDec_update_agent_A(BaseAgent):
         chk = {
             'epoch': self.update_epoch,
             'model_state_dict': self.update.state_dict(),
-            'optimizer_state_dict': self.update.state_dict(),
+            'optimizer_state_dict': self.update_optimizer.state_dict(),
             'device': self.device,
             'total_loss': self.update_loss
         }
@@ -416,10 +416,10 @@ class EncDec_update_agent_A(BaseAgent):
     def train_update(self):
         # Visualization purposes
         train_loss_names = ['Update TRAIN loss---> ' +
-                            l.__class__.__name__ for l in self.encDec_losses_fn] + \
+                            l.__class__.__name__ for l in self.update_losses_fn] + \
                            ['Update TRAIN loss---> TOTAL']
         val_loss_names = ['Update VAL loss---> ' +
-                          l.__class__.__name__ for l in self.encDec_losses_fn] + \
+                          l.__class__.__name__ for l in self.update_losses_fn] + \
                          ['Update VAL loss---> TOTAL']
 
         for epoch in tqdm(range(self.update_epoch + 1, self.update_n_epochs),

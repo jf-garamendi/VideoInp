@@ -1,6 +1,6 @@
 {
   "general": {
-    "exp_name": "debug_newArch",
+    "exp_name": "Pierrick_Complete_001_newArch",
     "agent": "EncDec_update_agent_A",
     "mode" : "train",
     "log_dir": "../../data/verbose/logs/",
