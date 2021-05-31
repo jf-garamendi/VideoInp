@@ -1,7 +1,7 @@
 {
   "general": {
     "exp_name": "Pierrick_Complete_001_newArch",
-    "agent": "EncDec_update_agent_A",
+    "agent": "EncDec_update_agent_001",
     "mode" : "train",
     "log_dir": "../../data/verbose/logs/",
     "device": "cuda"

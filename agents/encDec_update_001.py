@@ -21,7 +21,7 @@ from torch.utils.tensorboard import SummaryWriter
 import shutil
 
 
-class EncDec_update_agent_A(BaseAgent):
+class EncDec_update_agent_001(BaseAgent):
     """
     This base class will contain the base functions to be overloaded by any agent you will implement.
     """
