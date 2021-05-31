@@ -11,7 +11,7 @@ from utils.utils_from_FGVC.RAFT.utils.utils import initialize_RAFT, calculate_fl
 from utils.data_io import create_dir, writeFlow
 
 
-import training_parameters
+import configs.folder_structure as folder_structure
 import torch
 
 def main(args):
@@ -26,8 +26,8 @@ def main(args):
         out_dir = join(args.out_dir, video_path)
 
         video_path = join(args.in_root_dir, video_path)
-        frame_filename_list = glob(join(video_path, training_parameters.RAW_FRAMES_FOLDER, '*.png')) + \
-                              glob(join(video_path, training_parameters.RAW_FRAMES_FOLDER, '*.jpg'))
+        frame_filename_list = glob(join(video_path, folder_structure.RAW_FRAMES_FOLDER, '*.png')) + \
+                              glob(join(video_path, folder_structure.RAW_FRAMES_FOLDER, '*.jpg'))
 
         frame_filename_list = sorted(frame_filename_list)
 
@@ -47,7 +47,7 @@ def main(args):
         if args.masking_mode == "same_template":
             masks, masked_frames = create_template_mask_data(gt_frames, args.template_mask)
         elif args.masking_mode =="template_for_each_frame":
-            masks, masked_frames = create_template_mask_data(gt_frames, join(video_path, training_parameters.RAW_MASKS_FOLDER))
+            masks, masked_frames = create_template_mask_data(gt_frames, join(video_path, folder_structure.RAW_MASKS_FOLDER))
 
         # Compute optical flow, if needed
         if args.compute_RAFT_flow:
@@ -71,13 +71,13 @@ def main(args):
 def save_data(masks, masked_frames, fwd_flow, bwd_flow, gt_frames, gt_fwd_flow, gt_bwd_flow, out_dir):
 
     folders = {
-        "mask_dir": join(out_dir, training_parameters.MASKS_FOLDER),
-        "frame_dir" : join(out_dir, training_parameters.FRAMES_FOLDER),
-        "fwd_flow_dir" : join(out_dir, training_parameters.FWD_FLOW_FOLDER),
-        "bwd_flow_dir" : join(out_dir, training_parameters.BWD_FLOW_FOLDER),
-        "gt_frame_dir" : join(out_dir, training_parameters.GT_FRAMES_FOLDER),
-        "gt_fwd_flow_dir" : join(out_dir, training_parameters.GT_FWD_FLOW_FOLDER),
-        "gt_bwd_flow_dir" : join(out_dir, training_parameters.GT_BWD_FLOW_FOLDER)
+        "mask_dir": join(out_dir, folder_structure.MASKS_FOLDER),
+        "frame_dir" : join(out_dir, folder_structure.FRAMES_FOLDER),
+        "fwd_flow_dir" : join(out_dir, folder_structure.FWD_FLOW_FOLDER),
+        "bwd_flow_dir" : join(out_dir, folder_structure.BWD_FLOW_FOLDER),
+        "gt_frame_dir" : join(out_dir, folder_structure.GT_FRAMES_FOLDER),
+        "gt_fwd_flow_dir" : join(out_dir, folder_structure.GT_FWD_FLOW_FOLDER),
+        "gt_bwd_flow_dir" : join(out_dir, folder_structure.GT_BWD_FLOW_FOLDER)
     }
 
     for _, value in folders.items():
@@ -211,7 +211,6 @@ if __name__ == "__main__":
                         help='If active, apply mask to the frames before computing the optical flow.')
     parser.add_argument('--apply_mask_after', action='store_true',
                         help='If active, apply mask to the flow after computing the optical flow.')
-    parser.add_argument('--scale_longest_size_to', type = int, default=256)
     parser.add_argument('--H', type=int, default=512)
     parser.add_argument('--W', type=int, default=960)
 
