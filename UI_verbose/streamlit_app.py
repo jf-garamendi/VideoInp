@@ -11,7 +11,7 @@ from os.path import join
 from utils.data_io import read_flow
 
 # TODO: Remove this, the parameters should be saved in the checkpoint and readed from it.
-import training.training_parameters as training_param
+import configs.folder_structure as training_param
 
 from utils.flow_viz import flow_to_image
 
