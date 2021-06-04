@@ -87,11 +87,19 @@ def create_dir(dir):
     if not os.path.exists(dir):
         os.makedirs(dir)
 
-def read_mask(path_to_mask):
+def read_mask(path_to_mask, mask_is = "white", H=None, W=None):
     pil_mask = Image.open(path_to_mask).convert('L')
 
+    if (H is not None) and (W is not None):
+        #scale
+        pil_mask = pil_mask.resize((W, H))
+
+
     mask = np.array(pil_mask).astype(np.uint8)
+
     mask = (mask > 0).astype(np.uint8)
+    if mask_is == "black":
+        mask = 1 - mask
 
     return mask
 

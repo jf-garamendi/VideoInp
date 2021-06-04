@@ -14,6 +14,7 @@ import torch
 
 from graphs.models import *
 from graphs.losses import *
+from ingestion import *
 
 from utils.data_io import create_dir, verbose_images
 from tqdm import tqdm
@@ -86,19 +87,23 @@ class EncDec_update_agent_001(BaseAgent):
     ########################################################################
     # SET FUNCTIONS
     def set_data(self, data_config):
-        train_data = VideoInp_DataSet(data_config.train_root_dir,
+
+        restaurant = globals()[data_config.restaurant]
+        # TODO: pasar los parametros encapsulados en la estructura del json para poder usar diferences restaurantes sin tener
+        # que cambiar el agente. Tener dos estructuras, una para el entreno y otra para el val
+        train_data = restaurant(data_config.train_root_dir,
+                                data_config.generic_mask_sequences_dir,
                                       GT=True,
-                                      number_of_frames = data_config.number_of_frames,
-                                      random_holes_on_the_fly = data_config.random_holes_on_the_fly,
-                                      n_random_holes_per_frame = data_config.n_random_holes_per_frame
+                                      number_of_frames = data_config.number_of_frames
                                       )
 
         self.train_loader = DataLoader(train_data, batch_size=1, shuffle=True, drop_last=False)
 
-        val_data = VideoInp_DataSet(data_config.val_root_dir,
+        val_data = restaurant(data_config.val_root_dir,
+                              data_config.generic_mask_sequences_dir,
                                     number_of_frames=data_config.number_of_frames,
                                     GT=True,
-                                    random_holes_on_the_fly=False)
+)
         self.val_loader = DataLoader(val_data, batch_size=1, shuffle=False, drop_last=False)
 
     def set_model(self, model_config):
