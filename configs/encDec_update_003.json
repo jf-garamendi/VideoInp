@@ -1,6 +1,6 @@
 {
   "general": {
-    "exp_name": "Ag001_edP_up001_n0002",
+    "exp_name": "Ag001_edP_up001_n0003",
     "agent": "EncDec_update_agent_001",
     "mode" : "train",
     "log_dir": "../../data/verbose/logs/",

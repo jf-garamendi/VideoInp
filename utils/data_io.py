@@ -2,7 +2,7 @@ import glob
 import os
 import torch
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
 from os.path import *
 import re
 from utils.flow_viz import flow_to_image
@@ -82,23 +82,35 @@ def create_dirs(dirs):
         exit(-1)
 
 def create_dir(dir):
-    """Creates a directory if not exist.
+    """Creates a directory if not exist.i8
     """
     if not os.path.exists(dir):
         os.makedirs(dir)
 
-def read_mask(path_to_mask, mask_is = "white", H=None, W=None):
+def read_mask(path_to_mask, background_is = "black", H=None, W=None, border = (0,0,0,0)):
+    # If the region mask is black and background is white, set background_is to 'white'
+    # H and W are the dimensions of the output mask. should be the same as the frame
+    # border is used for re-scale the mask as follows
+    #   1.- Reduce (reescale) the image mask to the size (H-border[0]-norder[2], W-border[1]-border[3])
+    #   2.- put the reduced image on the center of an image with the same background (black or white) as the original image mask
     pil_mask = Image.open(path_to_mask).convert('L')
 
     if (H is not None) and (W is not None):
-        #scale
-        pil_mask = pil_mask.resize((W, H))
+        #   1.- Reduce (reescale) the image mask to the size (H-border[0]-norder[2], W-border[1]-border[3])
+        pil_mask = pil_mask.resize((W-border[1]-border[3], H-border[0]-border[2]))
+
+        #   2.- put the reduced image on the center of an image with the same background (black or white) as the original image mask
+        pil_mask = ImageOps.expand(pil_mask, border=border, fill=background_is)
+
+
+        # Be sure the output dimensions of the mask image are the same as the frame
+        pil_mask = pil_mask.resize((W , H ))
 
 
     mask = np.array(pil_mask).astype(np.uint8)
 
     mask = (mask > 0).astype(np.uint8)
-    if mask_is == "black":
+    if background_is == "white":
         mask = 1 - mask
 
     return mask

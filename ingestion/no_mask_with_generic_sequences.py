@@ -105,7 +105,9 @@ class No_mask_with_generic_sequences(Dataset):
 
             #Load (or create) mask
             mask_name = join(masks_folder, mask_files[i])
-            mask = read_mask(mask_name, mask_is='black', H=frame.shape[0], W=frame.shape[1])
+            H = frame.shape[0]
+            W = frame.shape[1]
+            mask = read_mask(mask_name, background_is='white', H=H, W=W, border=(H//3, W//3, H//3, W//3))
 
             ''' The dilation should be part of the model or at least out of the feeding
             # Dilate and replicate channels in the mask to 4            
