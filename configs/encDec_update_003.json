@@ -1,6 +1,6 @@
 {
   "general": {
-    "exp_name": "Ag001_edP_up001_n0003",
+    "exp_name": "Ag001_edP_up001_n0004",
     "agent": "EncDec_update_agent_001",
     "mode" : "train",
     "log_dir": "../../data/verbose/logs/",
@@ -25,7 +25,8 @@
   },
 
   "model": {
-    "max_num_steps_update": 20,
+    "max_num_steps_update": 200,
+    "max_num_consecutive_no_gain_steps": 20,
     "encDec" : "EncDec_pierrick",
     "update" : "Update_001",
     "partial_mode_update" : "pow"

@@ -114,6 +114,7 @@ class EncDec_update_agent_001(BaseAgent):
         self.update = self.update(update=model_config.partial_mode_update, device=self.device).to(self.device)
 
         self.max_num_steps_update = model_config.max_num_steps_update
+        self.max_num_consecutive_no_gain_steps = model_config.max_num_consecutive_no_gain_steps
 
     def set_optimizer(self, optim_config):
         self.encDec_optimizer = optim.Adam(self.encoder_decoder.parameters(),
@@ -309,7 +310,10 @@ class EncDec_update_agent_001(BaseAgent):
             F = self.encoder_decoder.encode(iflows)
 
             step = -1
-            while (gained_confidence.sum() > 0) and (step <= self.max_num_steps_update):
+
+            max_num = 0
+            while (step <= self.max_num_steps_update) and (max_num <= self.max_num_consecutive_no_gain_steps):
+                #print("Numero Steps: ", step)
                 loss2print = [0] * len(self.update_losses_fn)
                 step += 1
                 # print(step)
@@ -324,29 +328,37 @@ class EncDec_update_agent_001(BaseAgent):
 
                 gained_confidence = ((confidence_new > confidence) * confidence_new)
 
-                if gained_confidence.sum() > 0:
-                    F = current_F * (confidence_new <= confidence) + new_F * (confidence_new > confidence)
-                    computed_flows = self.encoder_decoder.decode(F)
+                if gained_confidence.sum() <= 0:
+                    #print("No gained Conf: ", step)
+                    max_num += 1
+                else:
+                    max_num = 0
 
-                    train_loss = torch.tensor(0).to(self.device)
-                    i = 0
-                    for loss, weight in zip(self.update_losses_fn, self.update_losses_weight):
-                        unitary_loss = torch.tensor(weight).to(self.device) * \
-                                       loss(computed_flows, mask=gained_confidence, ground_truth=gt_flows)
-                        train_loss = train_loss + unitary_loss
+                F = current_F * (confidence_new <= confidence) + new_F * (confidence_new > confidence)
+                computed_flows = self.encoder_decoder.decode(F)
 
-                        # normalize loss by the number of videos in the test dataset and the bunch of epochs
-                        loss2print[i] += unitary_loss.item() / (len(data_loader) )
+                train_loss = torch.tensor(0).to(self.device)
+                i = 0
+                for loss, weight in zip(self.update_losses_fn, self.update_losses_weight):
+                    unitary_loss = torch.tensor(weight).to(self.device) * \
+                                   loss(computed_flows, mask=gained_confidence, ground_truth=gt_flows)
+                    train_loss = train_loss + unitary_loss
 
-                        i += 1
+                    # normalize loss by the number of videos in the test dataset and the bunch of epochs
+                    loss2print[i] += unitary_loss.item() / (len(data_loader) )
 
-                    if training:
-                        #Back-Propagation
-                        train_loss.backward()
-                        self.update_optimizer.step()
+                    i += 1
 
-                    # mask update before next step
-                    confidence = confidence_new.clone().detach()
+                if training:
+                    #Back-Propagation
+                    train_loss.backward()
+                    self.update_optimizer.step()
+
+                # mask update before next step
+                confidence = confidence_new.clone().detach()
+
+
+
 
             if verbose:
                 verbose_images(self.verbose_out_images, prefix='update_sec_{}_'.format(str(nSec)),
