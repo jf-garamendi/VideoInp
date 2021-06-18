@@ -2,7 +2,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from .base import BaseTemplate
-from .custom_layers.partialconv2d import PartialConv2d
+from .custom_layers.partialconv2d_pierrick import PartialConv2d_pierrick
 from utils.frame_utils import warp
 
 
@@ -12,12 +12,12 @@ class Update_pierrick(BaseTemplate):
 
         self.device = device
 
-        self.pconv1 = PartialConv2d(multi_channel='semi', return_mask=True, kernel_size=(3, 3), padding=1,
-                                    in_channels=in_channels, out_channels=64, update=update)
+        self.pconv1 = PartialConv2d_pierrick(multi_channel='semi', return_mask=True, kernel_size=(3, 3), padding=1,
+                                             in_channels=in_channels, out_channels=64, update=update)
         self.bn1 = nn.BatchNorm2d(in_channels)
         self.bn2 = nn.BatchNorm2d(64)
-        self.pconv2 = PartialConv2d(multi_channel=False, return_mask=True, kernel_size=(3, 3), padding=1,
-                                    in_channels=64, out_channels=32, update=update)
+        self.pconv2 = PartialConv2d_pierrick(multi_channel=False, return_mask=True, kernel_size=(3, 3), padding=1,
+                                             in_channels=64, out_channels=32, update=update)
 
     def forward(self, x):
         # for a video

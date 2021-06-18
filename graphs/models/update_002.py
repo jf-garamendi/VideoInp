@@ -2,20 +2,20 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from .base import BaseTemplate
-from .custom_layers.partialconv2d_pierrick import PartialConv2d_pierrick
+from .custom_layers.partialconv2d import PartialConv2d
 from utils.frame_utils import warp
 
 
-class Update_001(BaseTemplate):
+class Update_002(BaseTemplate):
     def __init__(self, in_channels=32 * 3, update='pow', device=None):
-        super(Update_001, self).__init__()
+        super(Update_002, self).__init__()
 
         self.device = device
 
-        self.pconv1 = PartialConv2d_pierrick(multi_channel='semi', return_mask=True, kernel_size=(3, 3), padding=1,
-                                             in_channels=in_channels, out_channels=64, update=update)
-        self.pconv2 = PartialConv2d_pierrick(multi_channel=False, return_mask=True, kernel_size=(3, 3), padding=1,
-                                             in_channels=64, out_channels=32, update=update)
+        self.pconv1 = PartialConv2d(multi_channel=True, return_mask=True, kernel_size=(3, 3), padding=1,
+                                             in_channels=in_channels, out_channels=64)
+        self.pconv2 = PartialConv2d(multi_channel=True, return_mask=True, kernel_size=(3, 3), padding=1,
+                                             in_channels=64, out_channels=32)
 
     def forward(self, x):
         # for a video
@@ -41,7 +41,7 @@ class Update_001(BaseTemplate):
             new_F = (x_[:, 32:64] * confidence[:, 32:33] + out2 * (1 - confidence[:, 32:33]))
 
             new_features[n_frame] = torch.squeeze(new_F)
-            confidence_new[n_frame] = torch.squeeze(new_confidence)
+            confidence_new[n_frame] = torch.squeeze(new_confidence[0,1])
 
             # force the initially confident pixels to stay confident, because a decay can be observed
             # depending on the update rule of the partial convolution

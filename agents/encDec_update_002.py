@@ -22,7 +22,7 @@ from torch.utils.tensorboard import SummaryWriter
 import shutil
 
 
-class EncDec_update_agent_001(BaseAgent):
+class EncDec_update_agent_002(BaseAgent):
     """
     This base class will contain the base functions to be overloaded by any agent you will implement.
     """
@@ -328,29 +328,37 @@ class EncDec_update_agent_001(BaseAgent):
 
                 gained_confidence = ((confidence_new > confidence) * confidence_new)
 
-                if gained_confidence.sum() > 0:
-                    F = current_F * (confidence_new <= confidence) + new_F * (confidence_new > confidence)
-                    computed_flows = self.encoder_decoder.decode(F)
+                if gained_confidence.sum() <= 0:
+                    #print("No gained Conf: ", step)
+                    max_num += 1
+                else:
+                    max_num = 0
 
-                    train_loss = torch.tensor(0).to(self.device)
-                    i = 0
-                    for loss, weight in zip(self.update_losses_fn, self.update_losses_weight):
-                        unitary_loss = torch.tensor(weight).to(self.device) * \
-                                       loss(computed_flows, mask=gained_confidence, ground_truth=gt_flows)
-                        train_loss = train_loss + unitary_loss
+                F = current_F * (confidence_new <= confidence) + new_F * (confidence_new > confidence)
+                computed_flows = self.encoder_decoder.decode(F)
 
-                        # normalize loss by the number of videos in the test dataset and the bunch of epochs
-                        loss2print[i] += unitary_loss.item() / (len(data_loader) )
+                train_loss = torch.tensor(0).to(self.device)
+                i = 0
+                for loss, weight in zip(self.update_losses_fn, self.update_losses_weight):
+                    unitary_loss = torch.tensor(weight).to(self.device) * \
+                                   loss(computed_flows, mask=masks, ground_truth=gt_flows)
+                    train_loss = train_loss + unitary_loss
 
-                        i += 1
+                    # normalize loss by the number of videos in the test dataset and the bunch of epochs
+                    loss2print[i] += unitary_loss.item() / (len(data_loader) )
 
-                    if training:
-                        #Back-Propagation
-                        train_loss.backward()
-                        self.update_optimizer.step()
+                    i += 1
 
-                    # mask update before next step
-                    confidence = confidence_new.clone().detach()
+                if training:
+                    #Back-Propagation
+                    train_loss.backward()
+                    self.update_optimizer.step()
+
+                # mask update before next step
+                confidence = confidence_new.clone().detach()
+
+
+
 
             if verbose:
                 verbose_images(self.verbose_out_images, prefix='update_sec_{}_'.format(str(nSec)),
