@@ -114,7 +114,7 @@ class EncDec_update_agent_001(BaseAgent):
         self.update = self.update(update=model_config.partial_mode_update, device=self.device).to(self.device)
 
         self.max_num_steps_update = model_config.max_num_steps_update
-        self.max_num_consecutive_no_gain_steps = model_config.max_num_consecutive_no_gain_steps
+
 
     def set_optimizer(self, optim_config):
         self.encDec_optimizer = optim.Adam(self.encoder_decoder.parameters(),
@@ -312,7 +312,7 @@ class EncDec_update_agent_001(BaseAgent):
             step = -1
 
             max_num = 0
-            while (step <= self.max_num_steps_update) and (max_num <= self.max_num_consecutive_no_gain_steps):
+            while (step <= self.max_num_steps_update) :
                 #print("Numero Steps: ", step)
                 loss2print = [0] * len(self.update_losses_fn)
                 step += 1
