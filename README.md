@@ -61,3 +61,12 @@ streamlit run streamlit_app.py ../verbose/training_out/
 
 Streamlit_app reads from '../verbose/training_out/' the output of the trainings and shows in a 
 web.
+
+
+
+x-special/nautilus-clipboard
+copy
+file:///home/gpi/workspace/data/datasets/raw/5Tennis_c
+x-special/nautilus-clipboard
+copy
+file:///home/gpi/workspace/data/datasets/mask_templates/no_mask.png
