@@ -336,7 +336,7 @@ class EncDec_update_agent_004(BaseAgent):
                     i = 0
                     for loss, weight in zip(self.update_losses_fn, self.update_losses_weight):
                         unitary_loss = torch.tensor(weight).to(self.device) * \
-                                       loss(computed_flows, ground_truth=gt_flows)
+                                       loss(computed_flows, mask= initial_confidence, ground_truth=gt_flows)
                         train_loss = train_loss + unitary_loss
 
                         # normalize loss by the number of videos in the test dataset and the bunch of epochs
