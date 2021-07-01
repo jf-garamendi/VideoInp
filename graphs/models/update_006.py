@@ -12,17 +12,41 @@ class Update_006(BaseTemplate):
 
         self.device = device
 
-        self.pconv1 = PartialConv2d_pierrick(multi_channel='semi', return_mask=True, kernel_size=(3, 3), padding=1,
-                                             in_channels=in_channels, out_channels=62, update=update)
+        self.pconvA_1 = PartialConv2d_pierrick(multi_channel='semi', return_mask=True, kernel_size=(3, 3), padding=1,
+                                             in_channels=in_channels, out_channels=in_channels*2, update=update)
 
-        self.pconv2 = PartialConv2d_pierrick(multi_channel=False, return_mask=True, kernel_size=(3, 3), padding=1,
-                                             in_channels=62, out_channels=46, update=update)
-        self.pconv3 = PartialConv2d_pierrick(multi_channel=False, return_mask=True, kernel_size=(3, 3), padding=1,
-                                             in_channels=46, out_channels=38, update=update)
-        self.pconv4 = PartialConv2d_pierrick(multi_channel=False, return_mask=True, kernel_size=(3, 3), padding=1,
-                                             in_channels=38, out_channels=34, update=update)
-        self.pconv5 = PartialConv2d_pierrick(multi_channel=False, return_mask=True, kernel_size=(3, 3), padding=1,
-                                             in_channels=34, out_channels=32, update=update)
+        self.pconvA_2 = PartialConv2d_pierrick(multi_channel=False, return_mask=True, kernel_size=(3, 3), padding=1,
+                                             in_channels=in_channels*2, out_channels=in_channels*3, update=update)
+        self.pconvA_3 = PartialConv2d_pierrick(multi_channel=False, return_mask=True, kernel_size=(3, 3), padding=1,
+                                             in_channels=in_channels*3, out_channels=in_channels, update=update)
+        self.pconvA_4 = PartialConv2d_pierrick(multi_channel=False, return_mask=True, kernel_size=(3, 3), padding=1,
+                                             in_channels=in_channels, out_channels=in_channels, update=update)
+
+        self.pconvB_1 = PartialConv2d_pierrick(multi_channel=False, return_mask=True, kernel_size=(3, 3), padding=1,
+                                             in_channels=in_channels, out_channels=in_channels, update=update)
+
+        self.pconvB_2 = PartialConv2d_pierrick(multi_channel=False, return_mask=True, kernel_size=(3, 3), padding=1,
+                                             in_channels=in_channels, out_channels=in_channels, update=update)
+        self.pconvB_3 = PartialConv2d_pierrick(multi_channel=False, return_mask=True, kernel_size=(3, 3), padding=1,
+                                             in_channels=in_channels, out_channels=in_channels, update=update)
+        self.pconvB_4 = PartialConv2d_pierrick(multi_channel=False, return_mask=True, kernel_size=(3, 3), padding=1,
+                                             in_channels=in_channels, out_channels=in_channels, update=update)
+
+        ##Encoder
+        self.in_c = nn.Conv2d(in_channels, 32, kernel_size=1)
+
+        self.conv_enc_1 = nn.Sequential(
+            nn.Conv2d(32, 32, 3, 1, 1),
+            nn.GroupNorm(1, 32),
+            nn.LeakyReLU())
+
+        self.conv_enc_2 = nn.Sequential(
+            nn.Conv2d(32, 32, 3, 1, 1),
+            nn.GroupNorm(1, 32),
+            nn.LeakyReLU())
+
+        ##Decoder
+        self.conv_dec_1 = nn.Conv2d(32, 32, kernel_size=1)
 
 
     def forward(self, x):
@@ -35,8 +59,8 @@ class Update_006(BaseTemplate):
         confidence_new = confidence_in.clone()
 
 
-
         for n_frame in range(N):
+            #print(n_frame)
             three_Frames_features, confidence = self.__iterative_step(features_in,
                                                        flow_for_warping=flow_in,
                                                        confidence=confidence_in,
@@ -44,21 +68,31 @@ class Update_006(BaseTemplate):
 
 
 
-            out, new_confidence = self.pconv1(F.leaky_relu(three_Frames_features), confidence)
-            out, new_confidence = self.pconv2(F.leaky_relu(out), new_confidence)
-            out, new_confidence = self.pconv3(F.leaky_relu(out), new_confidence)
-            out, new_confidence = self.pconv4(F.leaky_relu(out), new_confidence)
-            out, new_confidence = self.pconv5(F.leaky_relu(out), new_confidence)
+            out, new_confidence = self.pconvA_1(three_Frames_features, confidence)
+            out, new_confidence = self.pconvA_2(F.leaky_relu(out), new_confidence)
+            out, new_confidence = self.pconvA_3(F.leaky_relu(out), new_confidence)
+            out, new_confidence = self.pconvA_4(F.leaky_relu(out), new_confidence)
 
-            #new_F = (three_Frames_features[:, 32:64] * confidence[:, 32:33] + out * (1 - confidence[:, 32:33]))
-            new_F = out
+            out, new_confidence = self.pconvB_1(F.leaky_relu(out), new_confidence)
+            out, new_confidence = self.pconvB_2(F.leaky_relu(out), new_confidence)
+            out, new_confidence = self.pconvB_3(F.leaky_relu(out), new_confidence)
+            out, new_confidence = self.pconvB_4(F.leaky_relu(out), new_confidence)
+
+            out = self.in_c(out)
+            out = out + self.conv_enc_1(out)
+            out = out + self.conv_enc_2(out)
+            out = self.conv_dec_1(out)
+
+
+
+            new_F = (three_Frames_features[:, 32:64] * confidence_in[n_frame] + out * (1 - confidence_in[n_frame]))
 
             new_features[n_frame] = torch.squeeze(new_F)
             confidence_new[n_frame] = torch.squeeze(new_confidence)
-
             # force the initially confident pixels to stay confident, because a decay can be observed
             # depending on the update rule of the partial convolution
             confidence_new[n_frame][confidence_in[n_frame] == 1] = 1.
+
 
         return new_features, confidence_new
 

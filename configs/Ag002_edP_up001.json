@@ -1,7 +1,7 @@
 {
   "general": {
     "exp_name": "Ag002_edP_up001_n0005",
-    "agent": "EncDec_update_agent_001",
+    "agent": "EncDec_update_agent_002",
     "mode" : "train",
     "log_dir": "../../data/verbose/logs/",
     "device": "cuda"

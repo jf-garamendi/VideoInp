@@ -32,8 +32,8 @@
   },
 
   "training": {
-    "encDec_n_epochs": 250,
-    "update_n_epochs": 2000
+    "encDec_n_epochs": 1000,
+    "update_n_epochs": 20000
   },
 
   "verbose": {

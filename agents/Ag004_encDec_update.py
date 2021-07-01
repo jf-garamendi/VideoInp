@@ -22,7 +22,7 @@ from torch.utils.tensorboard import SummaryWriter
 import shutil
 
 
-class EncDec_update_agent_004(BaseAgent):
+class Ag004_EncDec_update(BaseAgent):
     """
     This base class will contain the base functions to be overloaded by any agent you will implement.
     """
@@ -313,7 +313,7 @@ class EncDec_update_agent_004(BaseAgent):
 
             max_num = 0
             while (step <= self.max_num_steps_update) :
-                #print("Numero Steps: ", step)
+                #print("\n Numero Steps: ", step)
                 loss2print = [0] * len(self.update_losses_fn)
                 step += 1
                 # print(step)
