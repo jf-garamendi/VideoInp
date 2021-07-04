@@ -13,6 +13,7 @@ from utils.data_io import create_dir, writeFlow
 
 import configs.folder_structure as folder_structure
 import torch
+import cv2
 
 def main(args):
     # List the videos in the root folder
@@ -31,7 +32,7 @@ def main(args):
 
         frame_filename_list = sorted(frame_filename_list)
 
-        gt_frames = []
+        gt_frames_ = []
         for filename in frame_filename_list:
             f = Image.open(filename)
             # scale
@@ -39,29 +40,46 @@ def main(args):
 
             f = np.array(f).astype(np.uint8)
 
-            gt_frames.append(f)
+            gt_frames_.append(f)
 
-        #create the mask
-        masks = None
-        masked_frames = None
-        if args.masking_mode == "same_template":
-            masks, masked_frames = create_template_mask_data(gt_frames, args.template_mask)
-        elif args.masking_mode =="template_for_each_frame":
-            masks, masked_frames = create_template_mask_data(gt_frames, join(video_path, folder_structure.RAW_MASKS_FOLDER))
+        # Create the scale
+        H = args.H
+        W = args.W
+        gt_frames = []
+        masks = []
+        masked_frames = []
+        for scale in range(args.nLevels):
+            s_frames = []
+            for frame in gt_frames_:
+                s_frames.append(cv2.resize(frame, (W, H), interpolation=cv2.INTER_CUBIC ))
 
-        # Compute optical flow, if needed
-        if args.compute_RAFT_flow:
-            gt_fwd_flow, gt_bwd_flow = create_RAFT_flow(gt_frames, args)
+            gt_frames.append(s_frames)
 
-            if args.apply_mask_before:
-                masked_fwd_flow, masked_bwd_flow = create_RAFT_flow(masked_frames, args)
-            else:
-                masked_fwd_flow = []
-                masked_bwd_flow = []
+            #create the mask for each frame
+            if args.masking_mode == "same_template":
+                masks_, masked_frames_ = create_template_mask_data(gt_frames, args.template_mask)
+            elif args.masking_mode == "template_for_each_frame":
+                masks_, masked_frames_ = create_template_mask_data(gt_frames, join(video_path, folder_structure.RAW_MASKS_FOLDER))
 
-                for frame_fwd, frame_bwd, mask in zip(gt_fwd_flow, gt_bwd_flow, masks):
-                    masked_fwd_flow.append(frame_fwd * np.expand_dims(1-mask, -1))
-                    masked_bwd_flow.append(frame_bwd * np.expand_dims(1-mask, -1))
+            masks.append(masks_)
+            masked_frames.append(masked_frames_)
+
+            H = H/2
+            W = W/2
+
+            # Compute optical flow, if needed
+            if args.compute_RAFT_flow:
+                gt_fwd_flow_, gt_bwd_flow_ = create_RAFT_flow(gt_frames[scale], args[scale])
+
+                if args.apply_mask_before:
+                    masked_fwd_flow, masked_bwd_flow = create_RAFT_flow(masked_frames[scale], args)
+                else:
+                    masked_fwd_flow = []
+                    masked_bwd_flow = []
+
+                    for frame_fwd, frame_bwd, mask in zip(gt_fwd_flow_, gt_bwd_flow_, masks):
+                        masked_fwd_flow.append(frame_fwd * np.expand_dims(1-mask, -1))
+                        masked_bwd_flow.append(frame_bwd * np.expand_dims(1-mask, -1))
 
 
 
@@ -211,8 +229,9 @@ if __name__ == "__main__":
                         help='If active, apply mask to the frames before computing the optical flow.')
     parser.add_argument('--apply_mask_after', action='store_true',
                         help='If active, apply mask to the flow after computing the optical flow.')
-    parser.add_argument('--H', type=int, default=512)
-    parser.add_argument('--W', type=int, default=960)
+    parser.add_argument('--H', type=int, default=512, help='Height of the finer level')
+    parser.add_argument('--W', type=int, default=960, help='Width of the finer level')
+    parser.add_argument('--nLevels', type=int, default=1, help='Number of the coarser levels')
 
     # RAFT
     parser.add_argument('--opticalFlow_model', default='../weight/raft-things.pth',
