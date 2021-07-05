@@ -91,7 +91,7 @@ def read_mask(path_to_mask, background_is = "black", H=None, W=None, border = (0
     # If the region mask is black and background is white, set background_is to 'white'
     # H and W are the dimensions of the output mask. should be the same as the frame
     # border is used for re-scale the mask as follows
-    #   1.- Reduce (reescale) the image mask to the size (H-border[0]-norder[2], W-border[1]-border[3])
+    #   1.- Reduce (reescale) the image mask to the size (H-border[0]-border[2], W-border[1]-border[3])
     #   2.- put the reduced image on the center of an image with the same background (black or white) as the original image mask
     pil_mask = Image.open(path_to_mask).convert('L')
 
