@@ -10,7 +10,8 @@
   "data": {
     "train_root_dir": "../../data/datasets/built/davis_no_mask",
     "val_root_dir": "../../data/datasets/built/5Tennis_no_mask",
-    "generic_mask_sequences_dir": "/home/gpi/workspace/data/datasets/general_mask_sequences",
+    "train_generic_mask_sequences_dir": "/home/gpi/workspace/data/datasets/general_mask_sequences",
+    "val_generic_mask_sequences_dir": "/home/gpi/workspace/data/datasets/subset001_of_general_mask_sequences",
     "restaurant": "No_mask_with_generic_sequences",
     "train_batch_size": 1,
     "val_batch_size": 1,

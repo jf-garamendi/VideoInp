@@ -92,7 +92,7 @@ class EncDec_update_agent_001(BaseAgent):
         # TODO: pasar los parametros encapsulados en la estructura del json para poder usar diferences restaurantes sin tener
         # que cambiar el agente. Tener dos estructuras, una para el entreno y otra para el val
         train_data = restaurant(data_config.train_root_dir,
-                                data_config.generic_mask_sequences_dir,
+                                data_config.train_generic_mask_sequences_dir,
                                       GT=True,
                                       number_of_frames = data_config.number_of_frames
                                       )
@@ -100,7 +100,7 @@ class EncDec_update_agent_001(BaseAgent):
         self.train_loader = DataLoader(train_data, batch_size=1, shuffle=True, drop_last=False)
 
         val_data = restaurant(data_config.val_root_dir,
-                              data_config.generic_mask_sequences_dir,
+                              data_config.val_generic_mask_sequences_dir,
                                     number_of_frames=data_config.number_of_frames,
                                     GT=True,
 )

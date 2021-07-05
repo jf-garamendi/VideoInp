@@ -51,7 +51,7 @@ class No_mask_with_generic_sequences(Dataset):
         video_folder = join(self.root_dir, self.video_folders[idx])
 
         # take a random mask sequence
-        n_mask_seq = random.randint(0, len(self.mask_folders))
+        n_mask_seq = random.randint(0, len(self.mask_folders)-1)
         masks_folder = join(self.generic_mask_sequences_dir, self.mask_folders[n_mask_seq])
 
 
@@ -107,7 +107,7 @@ class No_mask_with_generic_sequences(Dataset):
             mask_name = join(masks_folder, mask_files[i])
             H = frame.shape[0]
             W = frame.shape[1]
-            mask = read_mask(mask_name, background_is='white', H=H, W=W, border=(H//3, W//3, H//3, W//3))
+            mask = read_mask(mask_name, background_is='white', H=H, W=W, border=(10, 10, 10, 10))
 
             ''' The dilation should be part of the model or at least out of the feeding
             # Dilate and replicate channels in the mask to 4            
@@ -117,7 +117,11 @@ class No_mask_with_generic_sequences(Dataset):
                                              np.ones((21, 21), np.uint8)).astype(np.uint8)
             dilated_mask = scipy.ndimage.binary_fill_holes(dilated_mask).astype(np.uint8)
             '''
-            dilated_mask = mask
+
+            if (i==0) or (i==(len(frame_files)-1)):
+                dilated_mask = mask*0
+            else:
+                dilated_mask = mask
 
             #mask the flow
             masked_flow = flow * np.expand_dims(1 - dilated_mask, -1)
