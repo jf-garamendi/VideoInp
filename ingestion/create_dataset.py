@@ -32,7 +32,7 @@ def main(args):
 
         frame_filename_list = sorted(frame_filename_list)
 
-        gt_frames_ = []
+        finest_gt_frames = []
         for filename in frame_filename_list:
             f = Image.open(filename)
             # scale
@@ -40,109 +40,128 @@ def main(args):
 
             f = np.array(f).astype(np.uint8)
 
-            gt_frames_.append(f)
+            finest_gt_frames.append(f)
 
         # Create the scale
         H = args.H
         W = args.W
-        gt_frames = []
-        masks = []
-        masked_frames = []
+        pyramid_gt_frames = []
+        pyramid_masks = []
+        pyramid_masked_frames = []
+        pyramid_masked_fwd_flow = []
+        pyramid_masked_bwd_flow = []
+        pyramid_gt_fwd_flow = []
+        pyramid_gt_bwd_flow = []
         for scale in range(args.nLevels):
-            s_frames = []
-            for frame in gt_frames_:
-                s_frames.append(cv2.resize(frame, (W, H), interpolation=cv2.INTER_CUBIC ))
+            s_gt_frames = []
+            for frame in finest_gt_frames:
+                s_gt_frames.append(cv2.resize(frame, (W, H), interpolation=cv2.INTER_CUBIC ))
 
-            gt_frames.append(s_frames)
+            pyramid_gt_frames.append(s_gt_frames)
 
             #create the mask for each frame
             if args.masking_mode == "same_template":
-                masks_, masked_frames_ = create_template_mask_data(gt_frames, args.template_mask)
+                s_masks, s_masked_frames = create_template_mask_data(s_gt_frames, args.template_mask)
             elif args.masking_mode == "template_for_each_frame":
-                masks_, masked_frames_ = create_template_mask_data(gt_frames, join(video_path, folder_structure.RAW_MASKS_FOLDER))
+                s_masks, s_masked_frames = create_template_mask_data(s_gt_frames, join(video_path, folder_structure.RAW_MASKS_FOLDER))
 
-            masks.append(masks_)
-            masked_frames.append(masked_frames_)
+            pyramid_masks.append(s_masks)
+            pyramid_masked_frames.append(s_masked_frames)
 
-            H = H/2
-            W = W/2
+            H = H//2
+            W = W//2
 
             # Compute optical flow, if needed
             if args.compute_RAFT_flow:
-                gt_fwd_flow_, gt_bwd_flow_ = create_RAFT_flow(gt_frames[scale], args[scale])
+                s_gt_fwd_flow, s_gt_bwd_flow = create_RAFT_flow(s_gt_frames, args)
 
                 if args.apply_mask_before:
-                    masked_fwd_flow, masked_bwd_flow = create_RAFT_flow(masked_frames[scale], args)
+                    s_masked_fwd_flow, s_masked_bwd_flow = create_RAFT_flow(s_masked_frames, args)
                 else:
-                    masked_fwd_flow = []
-                    masked_bwd_flow = []
+                    s_masked_fwd_flow = []
+                    s_masked_bwd_flow = []
 
-                    for frame_fwd, frame_bwd, mask in zip(gt_fwd_flow_, gt_bwd_flow_, masks):
-                        masked_fwd_flow.append(frame_fwd * np.expand_dims(1-mask, -1))
-                        masked_bwd_flow.append(frame_bwd * np.expand_dims(1-mask, -1))
+                    for frame_fwd, frame_bwd, mask in zip(s_gt_fwd_flow, s_gt_bwd_flow, s_masks):
+                        s_masked_fwd_flow.append(frame_fwd * np.expand_dims(1-mask, -1))
+                        s_masked_bwd_flow.append(frame_bwd * np.expand_dims(1-mask, -1))
+
+                pyramid_masked_fwd_flow.append(s_masked_fwd_flow)
+                pyramid_masked_bwd_flow.append(s_masked_bwd_flow)
+                pyramid_gt_fwd_flow.append(s_gt_fwd_flow)
+                pyramid_gt_bwd_flow.append(s_gt_bwd_flow)
+
+        save_data(pyramid_masks, pyramid_masked_frames, pyramid_masked_fwd_flow, pyramid_masked_bwd_flow,
+                  pyramid_gt_frames, pyramid_gt_fwd_flow, pyramid_gt_bwd_flow, out_dir, args.nLevels)
+
+
+def save_data(pyramid_masks, pyramid_masked_frames,
+              pyramid_fwd_flow, pyramid_bwd_flow,
+              pyramid_gt_frames, pyramid_gt_fwd_flow, pyramid_gt_bwd_flow,
+              out_dir, n_levels):
 
 
 
-        save_data(masks, masked_frames, masked_fwd_flow, masked_bwd_flow, gt_frames, gt_fwd_flow, gt_bwd_flow, out_dir)
 
+    l = -1
+    for data in zip(pyramid_masks, pyramid_masked_frames, pyramid_fwd_flow, pyramid_bwd_flow,
+                    pyramid_gt_frames, pyramid_gt_fwd_flow, pyramid_gt_bwd_flow):
+        l+=1
+        folders = {
+            "mask_dir": join(out_dir, 'level_'+str(l),  folder_structure.MASKS_FOLDER),
+            "frame_dir": join(out_dir, 'level_'+str(l), folder_structure.FRAMES_FOLDER),
+            "fwd_flow_dir": join(out_dir, 'level_'+str(l), folder_structure.FWD_FLOW_FOLDER),
+            "bwd_flow_dir": join(out_dir, 'level_'+str(l), folder_structure.BWD_FLOW_FOLDER),
+            "gt_frame_dir": join(out_dir, 'level_'+str(l), folder_structure.GT_FRAMES_FOLDER),
+            "gt_fwd_flow_dir": join(out_dir, 'level_'+str(l), folder_structure.GT_FWD_FLOW_FOLDER),
+            "gt_bwd_flow_dir": join(out_dir, 'level_'+str(l), folder_structure.GT_BWD_FLOW_FOLDER)
+        }
 
-def save_data(masks, masked_frames, fwd_flow, bwd_flow, gt_frames, gt_fwd_flow, gt_bwd_flow, out_dir):
+        masks, masked_frames, fwd_flow, bwd_flow, gt_frames, gt_fwd_flow, gt_bwd_flow = data
+        for _, value in folders.items():
+            create_dir(value)
 
-    folders = {
-        "mask_dir": join(out_dir, folder_structure.MASKS_FOLDER),
-        "frame_dir" : join(out_dir, folder_structure.FRAMES_FOLDER),
-        "fwd_flow_dir" : join(out_dir, folder_structure.FWD_FLOW_FOLDER),
-        "bwd_flow_dir" : join(out_dir, folder_structure.BWD_FLOW_FOLDER),
-        "gt_frame_dir" : join(out_dir, folder_structure.GT_FRAMES_FOLDER),
-        "gt_fwd_flow_dir" : join(out_dir, folder_structure.GT_FWD_FLOW_FOLDER),
-        "gt_bwd_flow_dir" : join(out_dir, folder_structure.GT_BWD_FLOW_FOLDER)
-    }
+        # saving masks, frames and flow
+        for i,(m, fr, fwd, bwd) in enumerate(zip(masks, masked_frames, fwd_flow, bwd_flow)):
+            m = Image.fromarray(m*255)
+            name = join(folders["mask_dir"], '%04d.png' % i)
+            m.save(name)
+            print("saved mask in " + name)
 
-    for _, value in folders.items():
-        create_dir(value)
+            fr = Image.fromarray(fr)
+            name = join(folders["frame_dir"], '%04d.jpg' % i)
+            fr.save(name)
+            print("saved masked frame in " + name)
 
-    # saving masks, frames and flow
-    for i,(m, fr, fwd, bwd) in enumerate(zip(masks, masked_frames, fwd_flow, bwd_flow)):
-        m = Image.fromarray(m*255)
-        name = join(folders["mask_dir"], '%04d.png' % i)
-        m.save(name)
-        print("saved mask in " + name)
+            name = join(folders["fwd_flow_dir"], '%04d.flo' % i)
+            writeFlow(name, fwd)
+            print("saved masked forward flow in " + name)
 
-        fr = Image.fromarray(fr)
-        name = join(folders["frame_dir"], '%04d.jpg' % i)
-        fr.save(name)
-        print("saved masked frame in " + name)
+            name = join(folders["bwd_flow_dir"], '%04d.flo' % i)
+            writeFlow(name, bwd)
+            print("saved masked backward flow in in " + name)
 
-        name = join(folders["fwd_flow_dir"], '%04d.flo' % i)
-        writeFlow(name, fwd)
-        print("saved masked forward flow in " + name)
+        # Saving Ground Truth
+        for i, (fr, fwd, bwd) in enumerate(zip(gt_frames, gt_fwd_flow, gt_bwd_flow)):
 
-        name = join(folders["bwd_flow_dir"], '%04d.flo' % i)
-        writeFlow(name, bwd)
-        print("saved masked backward flow in in " + name)
+            fr = Image.fromarray(fr)
+            name = join(folders["gt_frame_dir"], '%04d.jpg' % i)
+            fr.save(name)
+            print("saved ground truth of frame in " + name)
 
-    # Saving Ground Truth
-    for i, (fr, fwd, bwd) in enumerate(zip(gt_frames, gt_fwd_flow, gt_bwd_flow)):
+            name = join(folders["gt_fwd_flow_dir"], '%04d.flo' % i)
+            writeFlow(name, fwd)
+            print("saved ground truth of forward flow in " + name)
 
-        fr = Image.fromarray(fr)
-        name = join(folders["gt_frame_dir"], '%04d.jpg' % i)
-        fr.save(name)
-        print("saved ground truth of frame in " + name)
+            name = join(folders["gt_bwd_flow_dir"], '%04d.flo' % i)
+            writeFlow(name, bwd)
+            print("saved ground truth of backward flow in " + name)
 
-        name = join(folders["gt_fwd_flow_dir"], '%04d.flo' % i)
-        writeFlow(name, fwd)
-        print("saved ground truth of forward flow in " + name)
-
-        name = join(folders["gt_bwd_flow_dir"], '%04d.flo' % i)
-        writeFlow(name, bwd)
-        print("saved ground truth of backward flow in " + name)
-
-    # Debug purposes BORRAR
-    # from utils.io import save_flow_and_img
-    # save_flow_and_img(fwd_flow, folder_flow='./borrar_fwd', folder_img='./borrar_fwd_png')
-    # save_flow_and_img(bwd_flow, folder_flow='./borrar_bwd', folder_img='./borrar_bwd_png')
-    # save_flow_and_img(gt_fwd_flow, folder_flow='./borrar_fwd_img', folder_img='./borrar_fwd_png')
-    # save_flow_and_img(gt_bwd_flow, folder_flow='./borrar_bwd_img', folder_img='./borrar_bwd_png')
+        # Debug purposes BORRAR
+        # from utils.io import save_flow_and_img
+        # save_flow_and_img(fwd_flow, folder_flow='./borrar_fwd', folder_img='./borrar_fwd_png')
+        # save_flow_and_img(bwd_flow, folder_flow='./borrar_bwd', folder_img='./borrar_bwd_png')
+        # save_flow_and_img(gt_fwd_flow, folder_flow='./borrar_fwd_img', folder_img='./borrar_fwd_png')
+        # save_flow_and_img(gt_bwd_flow, folder_flow='./borrar_bwd_img', folder_img='./borrar_bwd_png')
 
 def create_template_mask_data(frame_list, path_to_mask):
     # path_to_mask can be a file or a folder. If it a file, the mask will be the same for all frames

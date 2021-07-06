@@ -35,7 +35,7 @@ in video_frames/tennis), runs the following script
 
 ```bash
 cd ingestion
-python create_dataset.py --in_root_dir ../video_frames --out_dir ../dataset  --masking_mode same_template --template_mask ../video_frames/tennis/mask.png --compute_RAFT_flow --apply_mask_before --H 256 --W 480
+python create_dataset.py --in_root_dir ../video_frames --out_dir ../dataset  --masking_mode same_template --template_mask ../video_frames/tennis/mask.png --compute_RAFT_flow --apply_mask_before --H 256 --W 480 --nLevels 2
 ```
 
 ## Running the  overfitting training over data in `./datasets`
