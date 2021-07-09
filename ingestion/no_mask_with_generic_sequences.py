@@ -27,6 +27,7 @@ class No_mask_with_generic_sequences(Dataset):
         # random_mask_on_the_fly: If True, then does not read the mask from file and generate a random square mask
         # flow_on_the_fly: NOT IMPLEMENTED. Does not read the optical flow from file and Computes it flow on the fly
         # GT: If True, then we read (and return) the Ground Truth
+        super().__init__()
 
         self.root_dir = root_dir
         self.generic_mask_sequences_dir = generic_mask_sequences_dir
