@@ -8,7 +8,7 @@
   },
 
   "data": {
-    "train_root_dir": "../../data/datasets/built/5Tennis_noMask_multiScale-3",
+    "train_root_dir": "../../data/datasets/built/davis_noMask_multiScale-3",
     "val_root_dir": "../../data/datasets/built/5Tennis_noMask_multiScale-3",
     "train_generic_mask_sequences_dir": "/home/gpi/workspace/data/datasets/general_mask_sequences",
     "val_generic_mask_sequences_dir": "/home/gpi/workspace/data/datasets/subset001_of_general_mask_sequences",
