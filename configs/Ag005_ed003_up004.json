@@ -1,6 +1,6 @@
 {
   "general": {
-    "exp_name": "n_Ag005_ed003_up004",
+    "exp_name": "n0013_Ag005_ed003_up004",
     "agent": "Ag005_EncDec_MultiScaleUpdate",
     "mode" : "train",
     "log_dir": "../../data/verbose/logs/",
