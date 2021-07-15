@@ -64,10 +64,10 @@ class Ag005_EncDec_MultiScaleUpdate(EncDec_update_agent_001):
                 gt_flows = gt_flows.to(self.device)
 
                 # Initial confidence: 1 outside the mask (the hole), 0 inside
-                initial_confidence = (1 - 1. * masks) + previous_scale_confidence*0.25
+                initial_confidence = (1 - 1. * masks) + previous_scale_confidence * 0.25
                 initial_confidence = torch.clip(initial_confidence, 0, 1)
 
-                iflows = iflows.view(B * N, C, H, W) + previous_scale_flow
+                iflows = (1-1. * masks)*iflows.view(B * N, C, H, W) + previous_scale_flow * (masks)
                 confidence = initial_confidence.clone()
                 gained_confidence = initial_confidence
 
@@ -118,8 +118,8 @@ class Ag005_EncDec_MultiScaleUpdate(EncDec_update_agent_001):
                         # mask update before next step
                         confidence = confidence_new.clone().detach()
 
-                previous_scale_confidence = T.Resize(size=(H*2, W*2))(confidence) * 0.5
-                previous_scale_flow = T.Resize(size=(H*2, W*2))( masks*computed_flows)
+                previous_scale_confidence = T.Resize(size=(H*2, W*2))(confidence)
+                previous_scale_flow = T.Resize(size=(H*2, W*2))(computed_flows)
 
 
             if verbose:
