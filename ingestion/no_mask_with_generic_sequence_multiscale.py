@@ -92,7 +92,7 @@ class No_mask_with_generic_sequences_multiscale(No_mask_with_generic_sequences):
                 mask_name = join(masks_folder, mask_files[i])
                 H = frame.shape[0]
                 W = frame.shape[1]
-                mask = read_mask(mask_name, background_is='white', H=H, W=W, border=(10, 10, 10, 10))
+                mask = read_mask(mask_name, background_is='white', H=H, W=W, border=(H//3, W//3, H//3, W//3))
 
                 ''' The dilation should be part of the model or at least out of the feeding
                 # Dilate and replicate channels in the mask to 4            
