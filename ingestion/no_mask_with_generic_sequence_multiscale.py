@@ -136,8 +136,8 @@ class No_mask_with_generic_sequences_multiscale(No_mask_with_generic_sequences):
             pyramid_gt_frames_to_compare.append(gt_frames_to_compare)
             pyramid_gt_flow_to_compare.append(gt_flow_to_compare)
 
-        return pyramid_frames_to_feed, pyramid_flow_to_feed, pyramid_mask_to_feed, \
-               pyramid_gt_frames_to_compare, pyramid_gt_flow_to_compare
+        return self.video_folders[idx], (pyramid_frames_to_feed, pyramid_flow_to_feed, pyramid_mask_to_feed, \
+               pyramid_gt_frames_to_compare, pyramid_gt_flow_to_compare)
 
 
 

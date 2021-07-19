@@ -40,8 +40,7 @@ class No_mask_with_generic_sequences(Dataset):
 
         self.video_folders = list(sorted(listdir(self.root_dir)))
         self.mask_folders =  list(sorted(listdir(self.generic_mask_sequences_dir)))
-        # shufle the masks
-        self.masks_folders = np.random.shuffle(self.mask_folders)
+
 
         self.number_of_frames = config.number_of_frames
 
@@ -152,7 +151,7 @@ class No_mask_with_generic_sequences(Dataset):
         frames_to_feed, flow_to_feed, mask_to_feed, gt_frames_to_compare, gt_flow_to_compare = \
             self.package_data_for_feeding(frames_list, flow_list, mask_list, gt_frames_list, gt_flow_list)
 
-        return frames_to_feed, flow_to_feed, mask_to_feed, gt_frames_to_compare, gt_flow_to_compare
+        return self.video_folders[idx], frames_to_feed, flow_to_feed, mask_to_feed, gt_frames_to_compare, gt_flow_to_compare
 
     #def compute_random_mask(self,  max_mask_W, max_mask_H, W_frame, H_frame ):
     def compute_random_mask(self, H_frame, W_frame):

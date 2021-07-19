@@ -22,8 +22,7 @@ from torch.utils.tensorboard import SummaryWriter
 import shutil
 import numpy as np
 
-np.random.seed(2021)
-torch.manual_seed(2021)
+
 class EncDec_update_agent_001(BaseAgent):
     """
     This base class will contain the base functions to be overloaded by any agent you will implement.
@@ -31,6 +30,8 @@ class EncDec_update_agent_001(BaseAgent):
 
     def __init__(self,  config):
         super().__init__()
+        np.random.seed(2021)
+        torch.manual_seed(2021)
 
         self.device = torch.device("cuda:0" if (torch.cuda.is_available() and config.general.device == "cuda") else "cpu")
 
@@ -239,7 +240,7 @@ class EncDec_update_agent_001(BaseAgent):
 
         nSec = 1
         for data in tqdm(data_loader, leave=False, desc='    Videos: '):
-            _, _, _, _, gt_flows = data
+            sec_name, _, _, _, _, gt_flows = data
 
             #because we are training enc/dec, the input flow is not masked
             flows = gt_flows
@@ -279,7 +280,7 @@ class EncDec_update_agent_001(BaseAgent):
                 self.encDec_optimizer.step()
 
             if verbose:
-                verbose_images(self.verbose_out_images, prefix='encDec_sec_{}_'.format(str(nSec)),
+                verbose_images(self.verbose_out_images, prefix='encDec_sec_${}$_'.format(sec_name[0]),
                                input_flow=flows, computed_flow=computed_flows,
                                gt_flow=gt_flows)
                 nSec += 1
@@ -296,7 +297,7 @@ class EncDec_update_agent_001(BaseAgent):
 
         nSec = 1
         for data in tqdm(data_loader, leave=False, desc='    Videos: '):
-            _, iflows, masks, _, gt_flows = data
+            sec_name, _, iflows, masks, _, gt_flows = data
 
             B, N, C, H, W = iflows.shape
 
@@ -362,7 +363,7 @@ class EncDec_update_agent_001(BaseAgent):
                     confidence = confidence_new.clone().detach()
 
             if verbose:
-                verbose_images(self.verbose_out_images, prefix='update_sec_{}_'.format(str(nSec)),
+                verbose_images(self.verbose_out_images, prefix='update_sec_${}$_'.format(sec_name[0]),
                                input_flow=iflows, computed_flow=computed_flows,
                                gt_flow=gt_flows)
             nSec += 1

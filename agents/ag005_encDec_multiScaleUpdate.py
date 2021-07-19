@@ -28,7 +28,7 @@ class Ag005_EncDec_MultiScaleUpdate(EncDec_update_agent_001):
         loss2print = [0] * len(self.update_losses_fn)
 
         nSec = 1
-        for pyramid_data in tqdm(data_loader, leave=False, desc='    Videos: '):
+        for sec_name, pyramid_data in tqdm(data_loader, leave=False, desc='    Videos: '):
             previous_scale_confidence = 0
             previous_scale_flow = 0
             #DEBUG
@@ -110,7 +110,7 @@ class Ag005_EncDec_MultiScaleUpdate(EncDec_update_agent_001):
 
 
             if verbose:
-                verbose_images(self.verbose_out_images, prefix='update_sec_{}_'.format(str(nSec)),
+                verbose_images(self.verbose_out_images, prefix='update_sec_$'+sec_name[0]+'$',
                                input_flow=iflows, computed_flow=computed_flows,
                                gt_flow=gt_flows)
             nSec += 1

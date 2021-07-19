@@ -87,16 +87,18 @@ def choose_folder_inside_folder(title ="", folder = None):
     return idx, selected
 
 def choose_video_sec_output(title="", folder=None):
+    idx = None
+    selected = ""
     inside_folder_list = listdir(folder)
     inside_folder_list = sorted(inside_folder_list)
 
-    sec_names = ["sec_1"]
+    sec_names = []
     for dir_name in inside_folder_list:
-        if "sec_" in dir_name:
-            idx_1 = dir_name.index("sec_")
-            sec_name = dir_name[idx_1:]
-            if ("GT" in sec_name):
-                idx_2 = sec_name.index("GT")
+        if "$" in dir_name:
+            idx_1 = dir_name.index("$")
+            sec_name = dir_name[idx_1+1:]
+            if ("$" in sec_name):
+                idx_2 = sec_name.index("$")
                 sec_name = sec_name[:idx_2-1]
 
 
@@ -105,8 +107,11 @@ def choose_video_sec_output(title="", folder=None):
                     print(sec_name)
                     sec_names.append(sec_name)
 
-    selected = st.sidebar.selectbox(title, sec_names)
-    idx = sec_names.index(selected)
+
+    if sec_names :
+        selected = st.sidebar.selectbox(title, sec_names)
+        idx = sec_names.index(selected)
+
 
     return idx, selected
 def frame_selector_ui(video_folder):
