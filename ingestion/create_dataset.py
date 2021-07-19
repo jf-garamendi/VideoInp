@@ -14,6 +14,9 @@ from utils.data_io import create_dir, writeFlow
 import configs.folder_structure as folder_structure
 import torch
 import cv2
+from tqdm import tqdm
+
+DEVICE = "cpu"
 
 def main(args):
     # List the videos in the root folder
@@ -22,7 +25,7 @@ def main(args):
 
 
    # Process frames
-    for video_name in video_folders:
+    for video_name in tqdm(video_folders):
 
         video_path = join(args.in_root_dir, video_name)
         frame_filename_list = glob(join(video_path, folder_structure.RAW_FRAMES_FOLDER, '*.png')) + \
@@ -101,20 +104,20 @@ def save_data(masks, masked_frames, fwd_flow, bwd_flow, gt_frames, gt_fwd_flow, 
         m = Image.fromarray(m*255)
         name = join(folders["mask_dir"], '%04d.png' % i)
         m.save(name)
-        print("saved mask in " + name)
+        #print("saved mask in " + name)
 
         fr = Image.fromarray(fr)
         name = join(folders["frame_dir"], '%04d.jpg' % i)
         fr.save(name)
-        print("saved masked frame in " + name)
+        #print("saved masked frame in " + name)
 
         name = join(folders["fwd_flow_dir"], '%04d.flo' % i)
         writeFlow(name, fwd)
-        print("saved masked forward flow in " + name)
+        #print("saved masked forward flow in " + name)
 
         name = join(folders["bwd_flow_dir"], '%04d.flo' % i)
         writeFlow(name, bwd)
-        print("saved masked backward flow in in " + name)
+        #print("saved masked backward flow in in " + name)
 
     # Saving Ground Truth
     for i, (fr, fwd, bwd) in enumerate(zip(gt_frames, gt_fwd_flow, gt_bwd_flow)):
@@ -122,15 +125,15 @@ def save_data(masks, masked_frames, fwd_flow, bwd_flow, gt_frames, gt_fwd_flow, 
         fr = Image.fromarray(fr)
         name = join(folders["gt_frame_dir"], '%04d.jpg' % i)
         fr.save(name)
-        print("saved ground truth of frame in " + name)
+        # print("saved ground truth of frame in " + name)
 
         name = join(folders["gt_fwd_flow_dir"], '%04d.flo' % i)
         writeFlow(name, fwd)
-        print("saved ground truth of forward flow in " + name)
+        #print("saved ground truth of forward flow in " + name)
 
         name = join(folders["gt_bwd_flow_dir"], '%04d.flo' % i)
         writeFlow(name, bwd)
-        print("saved ground truth of backward flow in " + name)
+        #print("saved ground truth of backward flow in " + name)
 
     # Debug purposes BORRAR
     # from utils.io import save_flow_and_img
@@ -187,7 +190,7 @@ def create_RAFT_flow(frame_list, RAFT_args):
         torch_frame_list.append(torch.from_numpy(frame.astype(np.uint8)).permute(2, 0, 1).float())
 
     video = torch.stack(torch_frame_list, dim=0)
-    video = video.to('cuda')
+    video = video.to(DEVICE)
 
     nFrames, _, imgH, imgW = video.shape
 
@@ -202,7 +205,7 @@ def create_RAFT_flow(frame_list, RAFT_args):
     bwd_flow = calculate_flow(RAFT_model, video, 'backward')
     # add the lid to the beginning
     bwd_flow = [np.zeros((imgH, imgW, 2))] + bwd_flow
-    print('\nFinish flow prediction.')
+    #print('\nFinish flow prediction.')
     # END calculate the flow
 
     return  fwd_flow, bwd_flow
