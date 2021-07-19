@@ -47,7 +47,7 @@ def calculate_flow(model, video, mode):
 
     with torch.no_grad():
         for i in range(video.shape[0] - 1):
-            print("\n Calculating {0} flow {1:2d} <---> {2:2d}".format(mode, i, i + 1), '\r', end='')
+            # print("\n Calculating {0} flow {1:2d} <---> {2:2d}".format(mode, i, i + 1), '\r', end='')
             if mode == 'forward':
                 # Flow i -> i + 1
                 image1 = video[i, None]
