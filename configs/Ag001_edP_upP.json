@@ -1,22 +1,20 @@
 {
   "general": {
-    "exp_name": "n0012_Ag001_edP_upP",
+    "exp_name": "n0014_Ag001_edP_upP",
     "agent": "EncDec_update_agent_001",
     "mode" : "train",
     "log_dir": "../../data/verbose/logs/",
     "device": "cuda"
   },
 
-  "data": {
-    "train_root_dir": "../../data/datasets/built/davis_no_mask",
-    "val_root_dir": "../../data/datasets/built/5Tennis_no_mask",
-    "train_generic_mask_sequences_dir": "/home/gpi/workspace/data/datasets/general_mask_sequences",
-    "val_generic_mask_sequences_dir": "/home/gpi/workspace/data/datasets/subset001_of_general_mask_sequences",
+    "data": {
+    "root_dir": "/home/gpi/workspace/data/datasets/built/davis_no_mask",
+    "generic_mask_sequences_dir": "/home/gpi/workspace/data/datasets/random_masks_with_temporal_consistency/rand_curve_no_boarder",
     "restaurant": "No_mask_with_generic_sequences",
     "train_batch_size": 1,
     "val_batch_size": 1,
     "number_of_frames": 10,
-    "n_levels": 3
+    "perc_val": 0.1
   },
 
   "optimizer": {
@@ -34,7 +32,7 @@
   },
 
   "training": {
-    "encDec_n_epochs": 1000,
+    "encDec_n_epochs": 1010,
     "update_n_epochs": 2000
   },
 

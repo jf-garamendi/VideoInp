@@ -14,30 +14,36 @@ import random
 import scipy.ndimage
 import cv2
 #For reproducibility
-np.random.seed(2021)
-random.seed(2021)
-torch.manual_seed(2021)
+
 from PIL import Image
 import configs.folder_structure as folder_structure
 
+np.random.seed(2021)
+random.seed(2021)
+torch.manual_seed(2021)
+
 class No_mask_with_generic_sequences(Dataset):
-    def __init__(self, root_dir, generic_mask_sequences_dir, GT=True, number_of_frames = 5):
+    def __init__(self, config):
         # root_dir:
         # nFrames:
         # random_mask_on_the_fly: If True, then does not read the mask from file and generate a random square mask
         # flow_on_the_fly: NOT IMPLEMENTED. Does not read the optical flow from file and Computes it flow on the fly
         # GT: If True, then we read (and return) the Ground Truth
         super().__init__()
+        np.random.seed(2021)
+        random.seed(2021)
+        torch.manual_seed(2021)
 
-        self.root_dir = root_dir
-        self.generic_mask_sequences_dir = generic_mask_sequences_dir
-        self.GT = GT
+        self.root_dir = config.root_dir
+        self.generic_mask_sequences_dir = config.generic_mask_sequences_dir
 
 
-        self.video_folders = list(sorted(listdir(root_dir)))
-        self.mask_folders =  list(sorted(listdir(generic_mask_sequences_dir)))
+        self.video_folders = list(sorted(listdir(self.root_dir)))
+        self.mask_folders =  list(sorted(listdir(self.generic_mask_sequences_dir)))
+        # shufle the masks
+        self.masks_folders = np.random.shuffle(self.mask_folders)
 
-        self.number_of_frames = number_of_frames
+        self.number_of_frames = config.number_of_frames
 
 
 
@@ -52,8 +58,7 @@ class No_mask_with_generic_sequences(Dataset):
         video_folder = join(self.root_dir, self.video_folders[idx])
 
         # take a random mask sequence
-        n_mask_seq = random.randint(0, len(self.mask_folders)-1)
-        masks_folder = join(self.generic_mask_sequences_dir, self.mask_folders[n_mask_seq])
+        masks_folder = join(self.generic_mask_sequences_dir, self.mask_folders[idx])
 
 
         fwd_flow_folder = join(video_folder, folder_structure.FWD_FLOW_FOLDER)
@@ -134,15 +139,15 @@ class No_mask_with_generic_sequences(Dataset):
             mask_list.append(dilated_mask)
             flow_list.append(masked_flow)
 
-            if self.GT:
-                gt_frame = read_frame(join(gt_frames_folder, frame_files[i]))
-                gt_frames_list.append(gt_frame)
 
-                gt_fwd_flow = read_flow(join(gt_fwd_flow_folder, fwd_flow_files[i]))
-                gt_bwd_flow = read_flow(join(gt_bwd_flow_folder, bwd_flow_files[i]))
+            gt_frame = read_frame(join(gt_frames_folder, frame_files[i]))
+            gt_frames_list.append(gt_frame)
 
-                gt_flow = np.concatenate([gt_fwd_flow, gt_bwd_flow], axis=2)
-                gt_flow_list.append(gt_flow)
+            gt_fwd_flow = read_flow(join(gt_fwd_flow_folder, fwd_flow_files[i]))
+            gt_bwd_flow = read_flow(join(gt_bwd_flow_folder, bwd_flow_files[i]))
+
+            gt_flow = np.concatenate([gt_fwd_flow, gt_bwd_flow], axis=2)
+            gt_flow_list.append(gt_flow)
 
         frames_to_feed, flow_to_feed, mask_to_feed, gt_frames_to_compare, gt_flow_to_compare = \
             self.package_data_for_feeding(frames_list, flow_list, mask_list, gt_frames_list, gt_flow_list)

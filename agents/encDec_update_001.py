@@ -8,7 +8,7 @@ sys.path.append(os.path.abspath(os.path.join(__file__, '..', '..')))
 from agents.base import  BaseAgent
 from os.path import join
 from ingestion.VideoInp_DataSet import VideoInp_DataSet
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, SubsetRandomSampler
 from torch import optim
 import torch
 
@@ -20,8 +20,10 @@ from utils.data_io import create_dir, verbose_images
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 import shutil
+import numpy as np
 
-
+np.random.seed(2021)
+torch.manual_seed(2021)
 class EncDec_update_agent_001(BaseAgent):
     """
     This base class will contain the base functions to be overloaded by any agent you will implement.
@@ -87,24 +89,31 @@ class EncDec_update_agent_001(BaseAgent):
     ########################################################################
     # SET FUNCTIONS
     def set_data(self, data_config):
-
         restaurant = globals()[data_config.restaurant]
-        # TODO: pasar los parametros encapsulados en la estructura del json para poder usar diferences restaurantes sin tener
-        # que cambiar el agente. Tener dos estructuras, una para el entreno y otra para el val
-        train_data = restaurant(data_config.train_root_dir,
-                                data_config.train_generic_mask_sequences_dir,
-                                      GT=True,
-                                      number_of_frames = data_config.number_of_frames
-                                      )
 
-        self.train_loader = DataLoader(train_data, batch_size=1, shuffle=True, drop_last=False)
+        dataset = restaurant(data_config)
 
-        val_data = restaurant(data_config.val_root_dir,
-                              data_config.val_generic_mask_sequences_dir,
-                                    number_of_frames=data_config.number_of_frames,
-                                    GT=True,
-)
-        self.val_loader = DataLoader(val_data, batch_size=1, shuffle=False, drop_last=False)
+        # split into train and validation
+        dataset_size = len(dataset)
+        dataset_indices = list(range(dataset_size))
+
+        # shufle the list of indices
+        np.random.shuffle(dataset_indices)
+
+        # split the indices based on train-val percentage
+        val_split_index = int(np.floor((1 - data_config.perc_val) * dataset_size))
+
+        # Slice the lists to obtain 2 lists of indices, one for train and other for val.
+        # From 0 to index goes for training, the last perc_val goes to val
+        train_idx = dataset_indices[:val_split_index]
+        val_idx = dataset_indices[val_split_index:]
+
+        # create samplers
+        train_sampler = SubsetRandomSampler(train_idx)
+        val_sampler = SubsetRandomSampler(val_idx)
+
+        self.train_loader = DataLoader(dataset=dataset, shuffle=False, batch_size=1, sampler=train_sampler)
+        self.val_loader = DataLoader(dataset=dataset, shuffle=False, batch_size=1, sampler=val_sampler)
 
     def set_model(self, model_config):
         self.encoder_decoder = globals()[model_config.encDec]
@@ -230,7 +239,10 @@ class EncDec_update_agent_001(BaseAgent):
 
         nSec = 1
         for data in tqdm(data_loader, leave=False, desc='    Videos: '):
-            _, flows, masks, _, gt_flows = data
+            _, _, _, _, gt_flows = data
+
+            #because we are training enc/dec, the input flow is not masked
+            flows = gt_flows
 
             B, N, C, H, W = flows.shape
 
@@ -310,10 +322,7 @@ class EncDec_update_agent_001(BaseAgent):
             F = self.encoder_decoder.encode(iflows)
 
             step = -1
-
-            max_num = 0
-            while (step <= self.max_num_steps_update) :
-                #print("Numero Steps: ", step)
+            while (gained_confidence.sum() > 0) and (step <= self.max_num_steps_update):
                 loss2print = [0] * len(self.update_losses_fn)
                 step += 1
                 # print(step)
@@ -336,7 +345,7 @@ class EncDec_update_agent_001(BaseAgent):
                     i = 0
                     for loss, weight in zip(self.update_losses_fn, self.update_losses_weight):
                         unitary_loss = torch.tensor(weight).to(self.device) * \
-                                       loss(computed_flows, mask=gained_confidence, ground_truth=gt_flows)
+                                       loss(computed_flows, mask=initial_confidence, ground_truth=gt_flows)
                         train_loss = train_loss + unitary_loss
 
                         # normalize loss by the number of videos in the test dataset and the bunch of epochs

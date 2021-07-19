@@ -12,11 +12,10 @@ from utils.data_io import read_mask, read_frame, read_flow
 import numpy as np
 
 class No_mask_with_generic_sequences_multiscale(No_mask_with_generic_sequences):
-    #def __init__(self, root_dir, generic_mask_sequences_dir, GT=True, number_of_frames = 5, level=0):
-    def __init__(self, root_dir, generic_mask_sequences_dir, GT=True, number_of_frames=5, nLevels=0):
-        super().__init__(root_dir, generic_mask_sequences_dir, GT, number_of_frames)
+    def __init__(self, config):
+        super().__init__(config)
 
-        self.nLevels=nLevels
+        self.nLevels=config.n_levels
         #self.video_folders = list(sorted(listdir(join(root_dir, 'level_'+level))))
 
     def __getitem__(self, idx):
@@ -30,7 +29,7 @@ class No_mask_with_generic_sequences_multiscale(No_mask_with_generic_sequences):
 
         # take a random mask sequence
         n_mask_seq = random.randint(0, len(self.mask_folders)-1)
-        masks_folder = join(self.generic_mask_sequences_dir, self.mask_folders[n_mask_seq])
+        masks_folder = join(self.generic_mask_sequences_dir, self.mask_folders[idx])
 
         #----
         pyramid_frames_to_feed = []
@@ -92,7 +91,7 @@ class No_mask_with_generic_sequences_multiscale(No_mask_with_generic_sequences):
                 mask_name = join(masks_folder, mask_files[i])
                 H = frame.shape[0]
                 W = frame.shape[1]
-                mask = read_mask(mask_name, background_is='white', H=H, W=W, border=(H//3, W//3, H//3, W//3))
+                mask = read_mask(mask_name, background_is='white', H=H, W=W)
 
                 ''' The dilation should be part of the model or at least out of the feeding
                 # Dilate and replicate channels in the mask to 4            
@@ -118,15 +117,15 @@ class No_mask_with_generic_sequences_multiscale(No_mask_with_generic_sequences):
                 mask_list.append(dilated_mask)
                 flow_list.append(masked_flow)
 
-                if self.GT:
-                    gt_frame = read_frame(join(gt_frames_folder, frame_files[i]))
-                    gt_frames_list.append(gt_frame)
 
-                    gt_fwd_flow = read_flow(join(gt_fwd_flow_folder, fwd_flow_files[i]))
-                    gt_bwd_flow = read_flow(join(gt_bwd_flow_folder, bwd_flow_files[i]))
+                gt_frame = read_frame(join(gt_frames_folder, frame_files[i]))
+                gt_frames_list.append(gt_frame)
 
-                    gt_flow = np.concatenate([gt_fwd_flow, gt_bwd_flow], axis=2)
-                    gt_flow_list.append(gt_flow)
+                gt_fwd_flow = read_flow(join(gt_fwd_flow_folder, fwd_flow_files[i]))
+                gt_bwd_flow = read_flow(join(gt_bwd_flow_folder, bwd_flow_files[i]))
+
+                gt_flow = np.concatenate([gt_fwd_flow, gt_bwd_flow], axis=2)
+                gt_flow_list.append(gt_flow)
 
             frames_to_feed, flow_to_feed, mask_to_feed, gt_frames_to_compare, gt_flow_to_compare = \
                 self.package_data_for_feeding(frames_list, flow_list, mask_list, gt_frames_list, gt_flow_list)

@@ -70,3 +70,5 @@ file:///home/gpi/workspace/data/datasets/raw/5Tennis_c
 x-special/nautilus-clipboard
 copy
 file:///home/gpi/workspace/data/datasets/mask_templates/no_mask.png
+
+python create_dataset.py --in_root_dir ../../../data/datasets/raw/davis_VOS_noMask/ --out_dir ../../../data/datasets/built/davis_VOS_noMask_multiscale_2  --masking_mode same_template --template_mask /home/gpi/workspace/data/datasets/mask_templates/no_mask.png --compute_RAFT_flow  --H 256 --W 480 --nLevels 2

@@ -6,31 +6,18 @@ from agents.encDec_update_001 import EncDec_update_agent_001
 import torch
 from tqdm import tqdm
 import torchvision.transforms as T
-from torch.utils.data import DataLoader
+
 from ingestion import *
 from utils.data_io import  verbose_images
+import numpy as np
+
 class Ag005_EncDec_MultiScaleUpdate(EncDec_update_agent_001):
     def __init__(self, config):
         super().__init__(config)
 
-    def set_data(self, data_config):
-        restaurant = globals()[data_config.restaurant]
-        # TODO: pasar los parametros encapsulados en la estructura del json para poder usar diferences restaurantes sin tener
-        # que cambiar el agente. Tener dos estructuras, una para el entreno y otra para el val
-        train_data = restaurant(data_config.train_root_dir,
-                                data_config.train_generic_mask_sequences_dir,
-                                GT=True,
-                                number_of_frames=data_config.number_of_frames, nLevels= data_config.n_levels
-                                )
+        np.random.seed(2021)
+        torch.manual_seed(2021)
 
-        self.train_loader = DataLoader(train_data, batch_size=1, shuffle=True, drop_last=False)
-
-        val_data = restaurant(data_config.val_root_dir,
-                              data_config.val_generic_mask_sequences_dir,
-                              number_of_frames=data_config.number_of_frames,
-                              GT=True, nLevels= data_config.n_levels
-                              )
-        self.val_loader = DataLoader(val_data, batch_size=1, shuffle=False, drop_last=False)
 
     def run_one_epoch_update(self, data_loader, training=True, verbose=False):
         torch.autograd.set_detect_anomaly(True)
