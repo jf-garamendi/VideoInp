@@ -1,7 +1,7 @@
 import torch
 from torch.nn import functional
 
-def warp(features, field, device):
+def warp(features, field, device='cuda'):
     # features: size (CxHxW)
     # field: size (2xHxW)
 
@@ -25,6 +25,32 @@ def warp(features, field, device):
     warped_features = torch.squeeze(warped_features)
 
     return warped_features
+
+def build_warped_seq(frame_seq, flow, mask_seq):
+    # NxCxHxW
+
+    frame_fwd_warped = torch.zeros(frame_seq.shape).to(frame_seq.device) + frame_seq
+    frame_bwd_warped = torch.zeros(frame_seq.shape).to(frame_seq.device) + frame_seq
+
+    for i in reversed(range(1, frame_seq.shape[0]-1)):
+
+        frame_tmp_warped = warp(frame_fwd_warped[i+1],flow[i,:2])
+        frame_fwd_warped[i] = frame_seq[i]*(1-mask_seq[i]) + mask_seq[i]*frame_tmp_warped
+
+
+    for i in range(1, frame_seq.shape[0]-1):
+        frame_tmp_warped = warp(frame_bwd_warped[i-1], flow[i,2:])
+        frame_bwd_warped[i] = frame_seq[i] * (1 - mask_seq[i]) + mask_seq[i] * frame_tmp_warped
+
+    frames_warped = (frame_fwd_warped + frame_bwd_warped) /2
+
+    warped_seq = frame_seq*(1-mask_seq) + frames_warped*mask_seq
+    #warped_seq = frame_bwd_warped #frames_warped
+
+    return  warped_seq
+
+
+
 
 def apply_mask(mask, data):
     #mask in 0, 1

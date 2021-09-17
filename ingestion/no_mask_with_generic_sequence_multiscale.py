@@ -31,6 +31,29 @@ class No_mask_with_generic_sequences_multiscale(No_mask_with_generic_sequences):
         n_mask_seq = random.randint(0, len(self.mask_folders)-1)
         masks_folder = join(self.generic_mask_sequences_dir, self.mask_folders[idx])
 
+        #random choose files inside
+        # feed with the especified number of frames
+        # random the first one and take the next self.number_of_files
+        frames_folder = join(video_folder, 'level_1', folder_structure.FRAMES_FOLDER)
+        n_files = len(list(listdir(frames_folder)))
+        n = min(self.number_of_frames, n_files)
+        if n_files> n:
+            flow_lower_bound = random.randint(0, n_files - n)
+        else:
+            flow_lower_bound =0
+
+        flow_upper_bound = flow_lower_bound + n
+
+
+        n_files = len(list(listdir(masks_folder)))
+        n = min(self.number_of_frames, n_files)
+        if len(masks_folder) > n:
+            mask_lower_bound = random.randint(0, n_files - n)
+        else:
+            mask_lower_bound = 0
+
+        mask_upper_bound = mask_lower_bound + n
+
         #----
         pyramid_frames_to_feed = []
         pyramid_flow_to_feed = []
@@ -53,23 +76,13 @@ class No_mask_with_generic_sequences_multiscale(No_mask_with_generic_sequences):
             fwd_flow_files = list(sorted(listdir(fwd_flow_folder)))
             bwd_flow_files = list(sorted(listdir(bwd_flow_folder)))
 
-            #feed with the especified number of frames
-            # random the last one and take the previous self.number_of_files
-            #n = min(len(frame_files), len(mask_files))
-            n = min(self.number_of_frames, len(mask_files))
-            if len(frame_files) > n:
-                lower_bound = random.randint(0, len(frame_files) - n)
-                upper_bound = lower_bound + n
 
-                frame_files = frame_files[lower_bound:upper_bound]
+            frame_files = frame_files[flow_lower_bound:flow_upper_bound]
 
-                fwd_flow_files = fwd_flow_files[lower_bound:upper_bound]
-                bwd_flow_files = bwd_flow_files[lower_bound:upper_bound]
+            fwd_flow_files = fwd_flow_files[flow_lower_bound:flow_upper_bound]
+            bwd_flow_files = bwd_flow_files[flow_lower_bound:flow_upper_bound]
 
-            if len(mask_files) > n:
-                lower_bound = random.randint(0, len(mask_files) - n)
-                upper_bound = lower_bound + n
-                mask_files = mask_files[lower_bound:upper_bound]
+            mask_files = mask_files[mask_lower_bound:mask_upper_bound]
 
             mask_list = []
             frames_list = []

@@ -6,7 +6,7 @@ from PIL import Image, ImageOps
 from os.path import *
 import re
 from utils.flow_viz import flow_to_image
-
+from utils.frame_utils import build_warped_seq
 import cv2
 import io
 import logging
@@ -31,7 +31,7 @@ def optimizer_to(optim, device):
 
 
 def verbose_images(verbose_dir, prefix = '',
-                   input_flow=None, computed_flow=None, gt_flow=None, computed_frames=None):
+                   input_flow=None, computed_flow=None, gt_flow=None, frames=None, masks=None):
 
     if input_flow is not None:
         folder = join(verbose_dir, prefix + 'input_forward_flow')
@@ -57,15 +57,46 @@ def verbose_images(verbose_dir, prefix = '',
         tensor_save_flow_and_img(gt_flow[:, 2:, :, :], folder)
 
 
-    if computed_frames is not None:
-        folder = join(verbose_dir, prefix + 'warped_frames')
+    if frames is not None:
+        frames = frames*(1-masks)
+        computed_warped_frames = build_warped_seq(frames, computed_flow, masks)
+        GT_warped_frames = build_warped_seq(frames, gt_flow, masks)
+
+        folder = join(verbose_dir, prefix + 'frames')
         create_dir(folder)
-        for n_frame in range(computed_frames.shape[3]):
-            frame_blend = computed_frames[:, :, :, n_frame]
-            m_pil = Image.fromarray((255 * np.squeeze(frame_blend)).astype(np.uint8))
+        frames= frames.permute(0,2,3,1)
+        for n_frame in range(frames.shape[0]):
+            frame_blend = frames[n_frame]
+            m_pil = Image.fromarray((255 * np.squeeze(frame_blend.cpu().numpy())).astype(np.uint8))
             if m_pil.mode != 'RGB':
                 m_pil = m_pil.convert('RGB')
             m_pil.save(folder + '/{:04d}_.png'.format(n_frame))
+
+        folder = join(verbose_dir, prefix + 'GT_warped_frames')
+        create_dir(folder)
+        GT_warped_frames = GT_warped_frames.permute(0, 2, 3, 1)
+        for n_frame in range(GT_warped_frames.shape[0]):
+            frame_blend = GT_warped_frames[n_frame]
+            m_pil = Image.fromarray((255 * np.squeeze(frame_blend.cpu().numpy())).astype(np.uint8))
+            if m_pil.mode != 'RGB':
+                m_pil = m_pil.convert('RGB')
+            m_pil.save(folder + '/{:04d}_.png'.format(n_frame))
+
+        folder = join(verbose_dir, prefix + 'computed_warped_frames')
+        create_dir(folder)
+        computed_warped_frames = computed_warped_frames.permute(0, 2, 3, 1)
+        for n_frame in range(computed_warped_frames.shape[0]):
+            frame_blend = computed_warped_frames[n_frame]
+            m_pil = Image.fromarray((255 * np.squeeze(frame_blend.cpu().numpy())).astype(np.uint8))
+            if m_pil.mode != 'RGB':
+                m_pil = m_pil.convert('RGB')
+            m_pil.save(folder + '/{:04d}_.png'.format(n_frame))
+
+    if masks is not None:
+        folder = join(verbose_dir, prefix+ 'Masks')
+        create_dir(folder)
+        save_mask_tensor_as_img(masks, folder)
+
 
 def create_dirs(dirs):
     """
@@ -134,9 +165,17 @@ def load_video_frames_as_tensor(video_path):
     video = torch.stack(video, dim=0)
 
     return video
+def save_mask_tensor_as_img (masks, folder):
+
+    create_dir(folder)
+    for n_mask in range(masks.shape[0]):
+        mask = masks[n_mask, :, :, :]
+        m_pil = Image.fromarray((255 * np.squeeze(mask.cpu().numpy())).astype(np.uint8))
+        if m_pil.mode != 'RGB':
+            m_pil = m_pil.convert('RGB')
+        m_pil.save(folder + '/{:04d}_.png'.format(n_mask))
 
 def tensor_save_flow_and_img(flow, folder):
-    #TODO: Check Dimensions
     #flow: nd_array of size (N,C,H,W)
     folder_flow = join(folder, 'flow_flo')
     folder_img = join(folder, 'flow_png')
