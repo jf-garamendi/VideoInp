@@ -34,15 +34,18 @@ def main(verbose_root_dir):
     folder_train_A = join(verbose_root_dir, selected_train_A)
     folder_train_B = join(verbose_root_dir, selected_train_B)
 
-    st.sidebar.title('Choose Video Sequence')
-    _, which_sec = choose_video_sec_output(folder= folder_train_A, title="Output Video Sequence")
+
 
     which_part = st.sidebar.radio("What model component do you want to see?", ("Encoder-Decoder", "Update"), index=1)
     fwd_or_bck = st.sidebar.radio("What flow do you want to see?", ("Forward", "Backward"), index=0)
     A_or_B = st.sidebar.radio("Which model do you want to see?", (selected_train_A, selected_train_B), index=0)
     overlay_GT_on_comp = st.sidebar.checkbox("Replace computed OF by the GT", value=False)
 
-
+    st.sidebar.title('Choose Video Sequence')
+    if A_or_B == selected_train_A:
+        _, which_sec = choose_video_sec_output(folder=folder_train_A, title="Output Video Sequence")
+    else:
+        _, which_sec = choose_video_sec_output(folder=folder_train_B, title="Output Video Sequence")
 
 
     in_flow_A, gt_flow_A, comp_flow_A  = read_flows_from_foldertrain(folder_train_A, which_part, fwd_or_bck, which_sec)
@@ -198,7 +201,7 @@ def read_flows_from_foldertrain(folder_train, which_model_part, which_flow, whic
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         folder = sys.argv[1]
-        print("Reading data from: ", folder)
+        print("Root folder: ", folder)
         main(folder)
     else:
         print("Please  specify the folder to read as first argument")
