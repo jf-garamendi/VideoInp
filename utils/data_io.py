@@ -77,7 +77,7 @@ def verbose_images(verbose_dir, prefix = '',
         GT_warped_frames = GT_warped_frames.permute(0, 2, 3, 1)
         for n_frame in range(GT_warped_frames.shape[0]):
             frame_blend = GT_warped_frames[n_frame]
-            m_pil = Image.fromarray((255 * np.squeeze(frame_blend.cpu().numpy())).astype(np.uint8))
+            m_pil = Image.fromarray((255 * np.squeeze(frame_blend.cpu().detach().numpy())).astype(np.uint8))
             if m_pil.mode != 'RGB':
                 m_pil = m_pil.convert('RGB')
             m_pil.save(folder + '/{:04d}_.png'.format(n_frame))
@@ -87,7 +87,7 @@ def verbose_images(verbose_dir, prefix = '',
         computed_warped_frames = computed_warped_frames.permute(0, 2, 3, 1)
         for n_frame in range(computed_warped_frames.shape[0]):
             frame_blend = computed_warped_frames[n_frame]
-            m_pil = Image.fromarray((255 * np.squeeze(frame_blend.cpu().numpy())).astype(np.uint8))
+            m_pil = Image.fromarray((255 * np.squeeze(frame_blend.cpu().detach().numpy())).astype(np.uint8))
             if m_pil.mode != 'RGB':
                 m_pil = m_pil.convert('RGB')
             m_pil.save(folder + '/{:04d}_.png'.format(n_frame))
