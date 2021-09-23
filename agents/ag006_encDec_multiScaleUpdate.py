@@ -11,7 +11,7 @@ from ingestion import *
 from utils.data_io import verbose_images, tensor_save_flow_and_img, save_mask_tensor_as_img
 import numpy as np
 
-class Ag005_EncDec_MultiScaleUpdate(EncDec_update_agent_001):
+class Ag006_EncDec_MultiScaleUpdate(EncDec_update_agent_001):
     def __init__(self, config):
         super().__init__(config)
 
@@ -33,7 +33,7 @@ class Ag005_EncDec_MultiScaleUpdate(EncDec_update_agent_001):
             previous_scale_flow = 0
             #DEBUG
             # choose (harcoded) the number of levels in the pyramid_data
-            pyramid_data = [ pyramid_data[i][-2:] for i in range(len(pyramid_data))]
+            #pyramid_data = [ pyramid_data[i][-2:] for i in range(len(pyramid_data))]
             # end DEBUG
             for iflows_o, masks, gt_frames, gt_flows in zip(pyramid_data[1], pyramid_data[2], pyramid_data[3], pyramid_data[4]):
                 # from coarsest to finest
@@ -141,13 +141,6 @@ class Ag005_EncDec_MultiScaleUpdate(EncDec_update_agent_001):
                 previous_scale_flow = 2*T.Resize(size=(H*2, W*2))(computed_flows)
 
 
-
-            '''
-            if verbose:
-                verbose_images(self.verbose_out_images, prefix='update_sec_$'+sec_name[0]+'$',
-                               input_flow=iflows, computed_flow=computed_flows,
-                               gt_flow=gt_flows, frames=gt_frames , masks=masks)
-            '''
             nSec += 1
 
         return loss2print
