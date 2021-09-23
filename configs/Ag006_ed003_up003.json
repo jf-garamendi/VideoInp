@@ -1,0 +1,67 @@
+{
+  "general": {
+    "exp_name": "n0014_Ag006_ed003_up003",
+    "agent": "Ag006_EncDec_MultiScaleUpdate",
+    "mode" : "train",
+    "log_dir": "../../data/verbose/logs/",
+    "device": "cuda"
+  },
+
+  "data": {
+    "root_dir": "../../data/datasets/built/davis_noMask_multiScale-3",
+    "generic_mask_sequences_dir": "/home/gpi/workspace/data/datasets/random_masks_with_temporal_consistency/rand_curve_no_boarder",
+    "restaurant": "No_mask_with_generic_sequences_multiscale",
+    "train_batch_size": 1,
+    "val_batch_size": 1,
+    "number_of_frames": 10,
+    "n_levels": 3,
+    "perc_val": 0.1
+  },
+
+  "optimizer": {
+    "weight_decay": 4e-5,
+    "learning_rate": 1e-4,
+    "beta_1" : 0.9,
+    "beta_2" : 0.999
+  },
+
+  "model": {
+    "max_num_steps_update": 5,
+    "encDec" : "EncDec_003",
+    "update" : "Update_003",
+    "partial_mode_update" : "pow"
+  },
+
+  "training": {
+    "encDec_n_epochs": 1000,
+    "update_n_epochs": 30000
+  },
+
+  "verbose": {
+    "tensorboard_root_dir": "../../data/verbose/tensor_board/",
+    "verbose_out_images" : "../../data/verbose/training_out/"
+  },
+
+  "checkpoint": {
+    "saving_n_iter": 1,
+    "root_dir": "../../data/verbose/checkpoint/",
+    "enc_dec_checkpoint_filename" : "enc_dec_checkpoint.tar",
+    "update_checkpoint_filename": "update_checkpoint.tar"
+
+  },
+
+  "losses": {
+    "encDec_losses": {
+      "losses": ["L1_loss"],
+      "weights": [1]
+    },
+    "update_losses": {
+      "losses": ["L1_loss", "TV_loss", "Min_fbbf_loss"],
+      "weights": [1, 10, 2]
+    }
+  },
+
+  "custom_layers": {
+    "partial_mode_update": "pow"
+  }
+}
