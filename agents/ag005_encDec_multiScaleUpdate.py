@@ -60,7 +60,7 @@ class Ag005_EncDec_MultiScaleUpdate(EncDec_update_agent_001):
 
                 uno = torch.Tensor([1]).to(self.device)
                 iflows_a = (1-masks.type(torch.FloatTensor)).to(self.device)*iflows_o
-                iflows_b = 2*previous_scale_flow * (masks.type(torch.FloatTensor)).to(self.device)
+                iflows_b = previous_scale_flow * (masks.type(torch.FloatTensor)).to(self.device)
                 iflows = iflows_a + iflows_b
 
                 '''
@@ -129,7 +129,7 @@ class Ag005_EncDec_MultiScaleUpdate(EncDec_update_agent_001):
                         confidence = confidence_new.clone().detach()
 
                 previous_scale_confidence = T.Resize(size=(H*2, W*2))(confidence)
-                previous_scale_flow = T.Resize(size=(H*2, W*2))(computed_flows)
+                previous_scale_flow = 2*T.Resize(size=(H*2, W*2))(computed_flows)
 
 
 
