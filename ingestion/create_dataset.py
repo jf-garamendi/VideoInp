@@ -227,9 +227,9 @@ if __name__ == "__main__":
                         help='If active, apply mask to the frames before computing the optical flow.')
     parser.add_argument('--apply_mask_after', action='store_true',
                         help='If active, apply mask to the flow after computing the optical flow.')
-    parser.add_argument('--H', type=int, default=512, help='Height of the finer level')
-    parser.add_argument('--W', type=int, default=960, help='Width of the finer level')
-    parser.add_argument('--nLevels', type=int, default=1, help='Number of the coarser levels')
+    parser.add_argument('--H', type=int, default=512, help='Height of the finest level')
+    parser.add_argument('--W', type=int, default=960, help='Width of the finest level')
+    parser.add_argument('--nLevels', type=int, default=1, help='Number of coarser levels')
 
     # RAFT
     parser.add_argument('--opticalFlow_model', default='../weight/raft-things.pth',
