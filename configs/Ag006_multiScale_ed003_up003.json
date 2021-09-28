@@ -1,7 +1,7 @@
 {
   "general": {
     "exp_name": "n0015_Ag006_ed003_up003",
-    "agent": "Ag006_EncDec_MultiScaleUpdate",
+    "agent": "Ag007_EncDec_MultiScaleUpdate",
     "mode" : "train",
     "log_dir": "../../data/verbose/logs/",
     "device": "cuda"
@@ -9,8 +9,9 @@
 
   "data": {
     "root_dir": "../../data/datasets/built/davis_noMask_multiScale-3",
-    "generic_mask_sequences_dir": "/home/gpi/workspace/data/datasets/random_masks_with_temporal_consistency/object_like_no_boarder",
-    "restaurant": "No_mask_with_generic_sequences_multiscale",
+    "mask": "/home/gpi/workspace/data/datasets/mask_templates/",
+    "random_holes_on_the_fly": false,
+    "restaurant": "VideoInp_Dataset_Multiscale",
     "train_batch_size": 1,
     "val_batch_size": 1,
     "number_of_frames": 10,
