@@ -123,6 +123,7 @@ class No_mask_with_generic_sequences(Dataset):
             dilated_mask = scipy.ndimage.binary_fill_holes(dilated_mask).astype(np.uint8)
             '''
 
+            # force to first and last frames without masks
             if (i==0) or (i==(len(frame_files)-1)):
                 dilated_mask = mask*0
             else:
