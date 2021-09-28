@@ -25,7 +25,7 @@ class VideoInp_DataSet(Dataset):
                  n_random_holes_per_frame=1):
         # root_dir:
         # nFrames: NOT IMPLEMENTED
-        # random_mask_on_the_fly: If True, then does not read the mask from file and generate a random square mask
+        # random_holes_on_the_fly: If True, then does not read the mask from file and generate a mask composed by random holes
         # flow_on_the_fly: NOT IMPLEMENTED. Does not read the optical flow from file and Computes it flow on the fly
         # GT: If True, then we read (and return) the Ground Truth
 
