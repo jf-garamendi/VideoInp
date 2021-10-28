@@ -31,10 +31,7 @@ class Ag005_EncDec_MultiScaleUpdate(EncDec_update_agent_001):
         for sec_name, pyramid_data in tqdm(data_loader, leave=False, desc='    Videos: '):
             previous_scale_confidence = 0
             previous_scale_flow = 0
-            #DEBUG
-            # choose (harcoded) the number of levels in the pyramid_data
-            pyramid_data = [ pyramid_data[i][-2:] for i in range(len(pyramid_data))]
-            # end DEBUG
+            
             for iflows_o, masks, gt_frames, gt_flows in zip(pyramid_data[1], pyramid_data[2], pyramid_data[3], pyramid_data[4]):
                 # from coarsest to finest
                 B, N, C, H, W = iflows_o.shape
@@ -85,10 +82,15 @@ class Ag005_EncDec_MultiScaleUpdate(EncDec_update_agent_001):
 
                 F = self.encoder_decoder.encode(iflows)
 
-                step = -1
+                step = 0
 
-                max_num = 0
-                while (step <= self.max_num_steps_update):
+                while (step < self.max_num_steps_update):
+                    if verbose:
+                        verbose_images(self.verbose_out_images,
+                                       prefix='internal_' + str(step) + '_$' + sec_name[0] + str(H) + 'x' + str(
+                                           W) + '$',
+                                       input_flow=iflows, computed_flow=computed_flows,
+                                       gt_flow=gt_flows, frames=gt_frames, masks=confidence)
                     # print("Numero Steps: ", step)
                     loss2print = [0] * len(self.update_losses_fn)
                     step += 1
@@ -128,15 +130,19 @@ class Ag005_EncDec_MultiScaleUpdate(EncDec_update_agent_001):
                         # mask update before next step
                         confidence = confidence_new.clone().detach()
 
+
+                if verbose:
+                    verbose_images(self.verbose_out_images, prefix='final_$' + sec_name[0] +str(H)+'x'+str(W) + '$',
+                                   input_flow=iflows, computed_flow=computed_flows,
+                                   gt_flow=gt_flows, frames=gt_frames, masks=masks)
+
+
+
                 previous_scale_confidence = T.Resize(size=(H*2, W*2))(confidence)
                 previous_scale_flow = 2*T.Resize(size=(H*2, W*2))(computed_flows)
+                #previous_scale_flow =  T.Resize(size=(H * 2, W * 2))(computed_flows)
 
 
-
-            if verbose:
-                verbose_images(self.verbose_out_images, prefix='update_sec_$'+sec_name[0]+'$',
-                               input_flow=iflows, computed_flow=computed_flows,
-                               gt_flow=gt_flows, frames=gt_frames , masks=masks)
             nSec += 1
 
         return loss2print
