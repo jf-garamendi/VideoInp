@@ -1,5 +1,3 @@
-# Overfitting of the iterative Pierrick's Model
-
 
 ## REQUERIMIENTS
 
