@@ -31,10 +31,7 @@ class Ag006_EncDec_MultiScaleUpdate(EncDec_update_agent_001):
         for sec_name, pyramid_data in tqdm(data_loader, leave=False, desc='    Videos: '):
             previous_scale_confidence = 0
             previous_scale_flow = 0
-            #DEBUG
-            # choose (harcoded) the number of levels in the pyramid_data
-            #pyramid_data = [ pyramid_data[i][-2:] for i in range(len(pyramid_data))]
-            # end DEBUG
+
             for iflows_o, masks, gt_frames, gt_flows in zip(pyramid_data[1], pyramid_data[2], pyramid_data[3], pyramid_data[4]):
                 # from coarsest to finest
                 B, N, C, H, W = iflows_o.shape
@@ -55,30 +52,13 @@ class Ag006_EncDec_MultiScaleUpdate(EncDec_update_agent_001):
                 gt_frames = gt_frames.to(self.device)
 
                 # Initial confidence: 1 outside the mask (the hole), 0 inside
-                initial_confidence = (1 - 1. * masks) + previous_scale_confidence * 0.5
-                #initial_confidence = (1 - 1. * masks) + previous_scale_confidence
+                initial_confidence = (1 - 1. * masks) + previous_scale_confidence
                 initial_confidence = torch.clip(initial_confidence, 0, 1)
 
                 uno = torch.Tensor([1]).to(self.device)
                 iflows_a = (1-masks.type(torch.FloatTensor)).to(self.device)*iflows_o
                 iflows_b = previous_scale_flow * (masks.type(torch.FloatTensor)).to(self.device)
                 iflows = iflows_a + iflows_b
-
-                '''
-                tensor_save_flow_and_img(iflows_a[:, 0:2, :, :], "./borrar/input_flow_a")
-                if previous_scale_flow is not 0:
-                    tensor_save_flow_and_img(iflows_b[:, 0:2, :, :], "./borrar/input_flow_b")
-                    save_mask_tensor_as_img(previous_scale_confidence, "./borrar/previous_scale_confidence")
-                    tensor_save_flow_and_img(computed_flows[:, 0:2, :, :], "./borrar/grueso")
-                    tensor_save_flow_and_img(previous_scale_flow[:, 0:2, :, :], "./borrar/fino")
-
-                tensor_save_flow_and_img(iflows[:, 0:2, :, :], "./borrar/input_flow")
-                tensor_save_flow_and_img(iflows_o[:, 0:2, :, :], "./borrar/input_flow_orig")
-                save_mask_tensor_as_img(masks, "./borrar/masks")
-                '''
-                #save_mask_tensor_as_img(initial_confidence, "./borrar/B/initial_confidence")
-
-
 
                 confidence = initial_confidence.clone()
                 gained_confidence = initial_confidence
@@ -87,10 +67,15 @@ class Ag006_EncDec_MultiScaleUpdate(EncDec_update_agent_001):
 
                 F = self.encoder_decoder.encode(iflows)
 
-                step = -1
+                step = 0
 
-                max_num = 0
-                while (step <= self.max_num_steps_update):
+                while (step < self.max_num_steps_update):
+                    if verbose:
+                        verbose_images(self.verbose_out_images,
+                                       prefix='internal_' + str(step) + '_$' + sec_name[0] + str(H) + 'x' + str(
+                                           W) + '$',
+                                       input_flow=iflows, computed_flow=computed_flows,
+                                       gt_flow=gt_flows, frames=gt_frames, masks=confidence)
                     # print("Numero Steps: ", step)
                     loss2print = [0] * len(self.update_losses_fn)
                     step += 1
@@ -130,8 +115,9 @@ class Ag006_EncDec_MultiScaleUpdate(EncDec_update_agent_001):
                         # mask update before next step
                         confidence = confidence_new.clone().detach()
 
+
                 if verbose:
-                    verbose_images(self.verbose_out_images, prefix='update_sec_$' + sec_name[0] +str(H)+'x'+str(W) + '$',
+                    verbose_images(self.verbose_out_images, prefix='final_$' + sec_name[0] +str(H)+'x'+str(W) + '$',
                                    input_flow=iflows, computed_flow=computed_flows,
                                    gt_flow=gt_flows, frames=gt_frames, masks=masks)
 
@@ -139,6 +125,7 @@ class Ag006_EncDec_MultiScaleUpdate(EncDec_update_agent_001):
 
                 previous_scale_confidence = T.Resize(size=(H*2, W*2))(confidence)
                 previous_scale_flow = 2*T.Resize(size=(H*2, W*2))(computed_flows)
+                #previous_scale_flow =  T.Resize(size=(H * 2, W * 2))(computed_flows)
 
 
             nSec += 1
