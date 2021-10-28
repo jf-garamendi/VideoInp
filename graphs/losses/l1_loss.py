@@ -8,6 +8,7 @@ class L1_loss(nn.Module):
         self.device = device
 
     def forward(self, candidate, ground_truth=None, mask=None, **kwargs):
+        # dim=1 is the channels dimension, as it is always 4, the mean along that dimension doesn't affect de |·|_1 behaviour
         pointwise_error = (torch.abs(ground_truth - candidate)).mean(dim=1)
 
         loss = 0
