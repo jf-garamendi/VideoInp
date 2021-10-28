@@ -1,6 +1,6 @@
 {
   "general": {
-    "exp_name": "n0016_Ag006_ed003_up003",
+    "exp_name": "n0024_Ag006_ed003_up003",
     "agent": "Ag006_EncDec_MultiScaleUpdate",
     "mode" : "train",
     "log_dir": "../../data/verbose/logs/",
@@ -8,7 +8,7 @@
   },
 
   "data": {
-    "root_dir": "../../data/datasets/built/davis_noMask_multiScale-3",
+    "root_dir": "../../data/datasets/built/davis_noMask_multiscale_3_B",
     "mask": "/home/gpi/workspace/data/datasets/mask_templates/00001.png",
     "random_holes_on_the_fly": false,
     "restaurant": "VideoInp_Dataset_Multiscale",
@@ -27,7 +27,7 @@
   },
 
   "model": {
-    "max_num_steps_update": 5,
+    "max_num_steps_update": 24,
     "encDec" : "EncDec_003",
     "update" : "Update_003",
     "partial_mode_update" : "pow"
