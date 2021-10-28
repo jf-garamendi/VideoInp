@@ -4,7 +4,11 @@
 ## REQUERIMIENTS
 
 ```bash
-conda install pytorch=1.7.1 torchvision=0.8.2 cudatoolkit=11 -c pytorch
+conda create --name VideoInp python=3.7.10
+conda activate VideoInp
+#adding channel nvidia to install exact version of cudatoolkit
+conda config --add channels nvidia
+conda install pytorch=1.7.1 torchvision=0.8.2 cudatoolkit=11.2.2 -c pytorch
 pip install -r requirements.txt
 ```
 
@@ -35,7 +39,7 @@ in video_frames/tennis), runs the following script
 
 ```bash
 cd ingestion
-python create_dataset.py --in_root_dir ../video_frames --out_dir ../dataset  --masking_mode same_template --template_mask ../video_frames/tennis/mask.png --compute_RAFT_flow --apply_mask_before --H 256 --W 480 --nLevels 2
+`_python create_dataset.py --in_root_dir ../video_frames --out_dir ../dataset  --masking_mode same_template --template_mask ../video_frames/tennis/mask.png --apply_mask_before --H 256 --W 480 --nLevels 2_`
 ```
 
 ## Running the  overfitting training over data in `./datasets`
