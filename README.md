@@ -40,6 +40,12 @@ cd ingestion
 `_python create_dataset.py --in_root_dir ../video_frames --out_dir ../dataset  --masking_mode same_template --template_mask ../video_frames/tennis/mask.png --apply_mask_before --H 256 --W 480 --nLevels 2_`
 ```
 
+other examples for creating datasets:
+
+```bash
+python create_dataset.py --in_root_dir ../../../data/datasets/raw/davis_no_mask/ --out_dir ../../../data/datasets/built/davis_noMask_multiscale_3_B  --masking_mode same_template --template_mask /home/gpi/workspace/data/datasets/mask_templates/no_mask.png   --H 256 --W 480 --nLevels 3
+```
+
 ## Running the  overfitting training over data in `./datasets`
 
 Change file ./config to rename the experiment and change  '"random_holes_on_the_fly": true,' to false if you want to tarain with the 
@@ -64,13 +70,3 @@ streamlit run streamlit_app.py ../verbose/training_out/
 Streamlit_app reads from '../verbose/training_out/' the output of the trainings and shows in a 
 web.
 
-
-
-x-special/nautilus-clipboard
-copy
-file:///home/gpi/workspace/data/datasets/raw/5Tennis_c
-x-special/nautilus-clipboard
-copy
-file:///home/gpi/workspace/data/datasets/mask_templates/no_mask.png
-
-python create_dataset.py --in_root_dir ../../../data/datasets/raw/davis_VOS_noMask/ --out_dir ../../../data/datasets/built/davis_VOS_noMask_multiscale_2  --masking_mode same_template --template_mask /home/gpi/workspace/data/datasets/mask_templates/no_mask.png --compute_RAFT_flow  --H 256 --W 480 --nLevels 2
