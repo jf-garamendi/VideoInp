@@ -15,8 +15,9 @@ import configs.folder_structure as folder_structure
 import torch
 import cv2
 from tqdm import tqdm
+from scipy import ndimage
 
-DEVICE = "cpu"
+DEVICE = "cuda"
 
 def main(args):
     # List the videos in the root folder
@@ -33,7 +34,7 @@ def main(args):
 
         frame_filename_list = sorted(frame_filename_list)
 
-        finest_gt_frames = []
+        gt_frames = []
         for filename in frame_filename_list:
             f = Image.open(filename)
             # scale
@@ -41,47 +42,81 @@ def main(args):
 
             f = np.array(f).astype(np.uint8)
 
-            finest_gt_frames.append(f)
+            gt_frames.append(f)
 
         # Create the scale
-        H = args.H
-        W = args.W
-        for scale in range(args.nLevels):
-            out_dir = join(args.out_dir, video_name, 'level_'+str(scale))
-            # Create root desteny folder
+        scale = 0
+        out_dir = join(args.out_dir, video_name, 'level_' + str(scale))
+        # Create root destiny folder
+        create_dir(out_dir)
+
+        # create the mask for each frame
+        mask_path = ""
+        if args.masking_mode == "same_template":
+            mask_path = args.template_mask
+        elif args.masking_mode == "template_for_each_frame":
+            mask_path = join(video_path,folder_structure.RAW_MASKS_FOLDER)
+
+        masks, masked_frames = create_template_mask_data(gt_frames, mask_path)
+
+        # Compute optical flow, if needed
+
+        gt_fwd_flow, gt_bwd_flow = create_RAFT_flow(gt_frames, args)
+
+        if args.apply_mask_before:
+            masked_fwd_flow, masked_bwd_flow = create_RAFT_flow(masked_frames, args)
+        else:
+            masked_fwd_flow = []
+            masked_bwd_flow = []
+
+            for frame_fwd, frame_bwd, mask in zip(gt_fwd_flow, gt_bwd_flow, masks):
+                masked_fwd_flow.append(frame_fwd * np.expand_dims(1 - mask, -1))
+                masked_bwd_flow.append(frame_bwd * np.expand_dims(1 - mask, -1))
+
+        save_data(masks, masked_frames, masked_fwd_flow, masked_bwd_flow, gt_frames, gt_fwd_flow, gt_bwd_flow, out_dir)
+
+        scale = 1.
+        for level in range(1, args.nLevels):
+            scale = scale / 2
+
+            # Create the scale
+            out_dir = join(args.out_dir, video_name, 'level_' + str(level))
+            # Create root destiny folder
             create_dir(out_dir)
 
             s_gt_frames = []
-            for frame in finest_gt_frames:
-                s_gt_frames.append(cv2.resize(frame, (W, H), interpolation=cv2.INTER_CUBIC ))
+            for frame in gt_frames:
+                s_gt_frames.append(ndimage.zoom(frame, (scale, scale, 1)))
 
-
-
-            #create the mask for each frame
+            # create the mask for each frame
             if args.masking_mode == "same_template":
                 s_masks, s_masked_frames = create_template_mask_data(s_gt_frames, args.template_mask)
             elif args.masking_mode == "template_for_each_frame":
-                s_masks, s_masked_frames = create_template_mask_data(s_gt_frames, join(video_path, folder_structure.RAW_MASKS_FOLDER))
+                s_masks, s_masked_frames = create_template_mask_data(s_gt_frames, join(video_path,
+                                                                                       folder_structure.RAW_MASKS_FOLDER))
+            else:
+                s_masks, s_masked_frames = create_template_mask_data(s_gt_frames, join(video_path,
+                                                                                       folder_structure.RAW_MASKS_FOLDER))
+
+            # Downscale the optical flow
+            s_gt_fwd_flow = []
+            s_gt_bwd_flow = []
+            for frame_gt_fwd_flow, frame_gt_bwd_flow in zip(gt_fwd_flow, gt_bwd_flow):
+                s_gt_fwd_flow.append(scale * ndimage.zoom(frame_gt_fwd_flow, (scale, scale, 1)))
+                s_gt_bwd_flow.append(scale * ndimage.zoom(frame_gt_bwd_flow, (scale, scale, 1)))
+
+            #mask the flows
+            s_masked_fwd_flow = []
+            s_masked_bwd_flow = []
+
+            for frame_fwd, frame_bwd, mask in zip(s_gt_fwd_flow, s_gt_bwd_flow, s_masks):
+                s_masked_fwd_flow.append(frame_fwd * np.expand_dims(1 - mask, -1))
+                s_masked_bwd_flow.append(frame_bwd * np.expand_dims(1 - mask, -1))
+
+            save_data(s_masks, s_masked_frames, s_masked_fwd_flow, s_masked_bwd_flow, s_gt_frames, s_gt_fwd_flow,
+                      s_gt_bwd_flow, out_dir)
 
 
-            H = H//2
-            W = W//2
-
-            # Compute optical flow, if needed
-            if args.compute_RAFT_flow:
-                s_gt_fwd_flow, s_gt_bwd_flow = create_RAFT_flow(s_gt_frames, args)
-
-                if args.apply_mask_before:
-                    s_masked_fwd_flow, s_masked_bwd_flow = create_RAFT_flow(s_masked_frames, args)
-                else:
-                    s_masked_fwd_flow = []
-                    s_masked_bwd_flow = []
-
-                    for frame_fwd, frame_bwd, mask in zip(s_gt_fwd_flow, s_gt_bwd_flow, s_masks):
-                        s_masked_fwd_flow.append(frame_fwd * np.expand_dims(1-mask, -1))
-                        s_masked_bwd_flow.append(frame_bwd * np.expand_dims(1-mask, -1))
-
-            save_data(s_masks, s_masked_frames, s_masked_fwd_flow, s_masked_bwd_flow, s_gt_frames, s_gt_fwd_flow, s_gt_bwd_flow, out_dir)
 
 
 def save_data(masks, masked_frames, fwd_flow, bwd_flow, gt_frames, gt_fwd_flow, gt_bwd_flow, out_dir):
@@ -221,8 +256,6 @@ if __name__ == "__main__":
                         help='mode of making the masks. Modes are Blah, blah, blah....')
     parser.add_argument('--template_mask', default=None,
                         help='Path to the image used as template for masking')
-    parser.add_argument('--compute_RAFT_flow', action='store_true',
-                        help='Whether compute the optical flow (using RAFT) or not')
     parser.add_argument('--apply_mask_before', action='store_true',
                         help='If active, apply mask to the frames before computing the optical flow.')
     parser.add_argument('--apply_mask_after', action='store_true',
